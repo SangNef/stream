@@ -1,0 +1,15 @@
+# Ignore node_modules
+/node_modules/
+/public/
+/env/
+
+
+# Ignore .env files
+.env
+.env.development
+.env.production
+
+# Ignore config files
+src/config/config.json
+src/config/index.ts
+src/config/config.js
