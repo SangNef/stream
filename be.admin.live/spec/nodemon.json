@@ -1,0 +1,6 @@
+{
+  "watch": ["spec"],
+  "ext": "ts,html",
+  "ignore": ["spec/support"],
+  "exec": "npx ts-node --files -r tsconfig-paths/register ./src/api/index.ts"
+}
