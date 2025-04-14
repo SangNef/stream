@@ -4,6 +4,7 @@ import { store } from "./store/AuthStore";
 import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
 import { routes } from "./routes";
 import "./App.css";
+import { ToastContainer } from "react-toastify";
 
 function App() {
     return (
@@ -29,6 +30,7 @@ function App() {
                     })}
                 </Routes>
             </Router>
+            <ToastContainer />
         </Provider>
     );
 }
