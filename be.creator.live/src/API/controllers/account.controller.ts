@@ -46,7 +46,7 @@ class UserAccountController {
     }
 
     static updateInfoAcc = async (req: ReqEntity, res: Response) => {
-        const { id, avatar, ...body} = req.body;
+        const { id, ...body} = req.body;
         const data = {
             ...body,
             id: req.user.sub,
