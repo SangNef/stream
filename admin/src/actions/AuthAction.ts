@@ -9,8 +9,8 @@ export const login = createAsyncThunk(
             const response = await loginAPI(credentials.email, credentials.password);
             console.log("response", response);
             if (response?.metadata) {
-                localStorage.setItem("accessToken", response?.metadata);
-                dispatch(getProfile()); // Gọi API lấy thông tin user ngay sau khi login
+                localStorage.setItem("accessToken", response?.metadata.accessToken);
+                dispatch(getProfile()); 
                 return response.metadata;
             } else {
                 return rejectWithValue(response);

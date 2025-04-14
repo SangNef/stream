@@ -30,29 +30,24 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen }) => {
             href: "/",
         },
         {
-            label: "Người dùng",
+            label: "Quản trị viên",
             icon: <UserIcon className={iconClass} />,
-            href: "/users",
+            href: "/admin-management",
         },
         {
-            label: "Lịch sử phát",
+            label: "Lịch sử thay đổi",
             icon: <VideoCameraIcon className={iconClass} />,
-            href: "/stream",
+            href: "/admin-history",
         },
         {
             label: "Giao dịch",
             icon: <CreditCardIcon className={iconClass} />,
-            href: "/transactions",
+            href: "/transaction-management",
         },
         {
-            label: "Lịch sử hoạt động",
+            label: "Quản lý Stream",
             icon: <CalendarDaysIcon className={iconClass} />,
-            href: "/history",
-        },
-        {
-            label: "Nhân viên",
-            icon: <UsersIcon className={iconClass} />,
-            href: "/employees",
+            href: "/stream-management",
         },
         {
             label: "Cài đặt",
