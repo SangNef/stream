@@ -24,6 +24,7 @@ router.get('/stream/top-most-view', asyncHandler(UserStreamController.getStreams
 router.get('/stream/top-creator-hot/:date', asyncHandler(UserStreamController.getCreatorHot));
 router.get('/stream/get-stream-url/:creator_id', asyncHandler(UserStreamController.getStreamUrlByCreatorId));
 router.get('/stream/get-list-stream-creator-followed', asyncHandler(UserStreamController.getListStreamOfCreatorFollowed as any));
+router.get('/stream/statistical', asyncHandler(UserStreamController.statisticalByTime as any));
 router.post('/stream/create', asyncHandler(UserStreamController.createStream as any));
 router.put('/stream/update/:streamid', asyncHandler(UserStreamController.updateStream));
 
