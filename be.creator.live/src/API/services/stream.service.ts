@@ -1,9 +1,15 @@
-import { literal } from 'sequelize';
+import { literal, Op } from 'sequelize';
 import { BadRequestResponse, NotFoundResponse } from '../core/ErrorResponse';
 import Stream from '../../models/stream';
 import User from '../../models/user';
 import Follower from '../../models/follower';
 import { StreamModelEntity } from '~/type/app.entities';
+import { ConfigModel, TransactionModel } from '~/models';
+
+interface FilterStream extends StreamModelEntity {
+    start_date: string
+    end_date: string
+}
 
 class UserStreamService {
     // Lấy tất cả stream (đã live, đang live), sắp xếp DESC theo lượt xem.
@@ -185,6 +191,94 @@ class UserStreamService {
             totalRecords: result.count,
             records: result.rows
         }
+    }
+
+    static statisticalByTime = async (sub: number, page: number, limit: number, filter: Partial<FilterStream>) => {
+        const pageCurrent = Number.isNaN(page) ? 1 : page;
+        const recordOfPage = Number.isNaN(limit) ? 10 : limit;
+        const offset = (pageCurrent - 1) * recordOfPage;
+
+        let condition = {} as any, conditionDonate = {} as any;
+        conditionDonate.type = 'donate';
+        if(filter.start_date || filter.end_date){
+            const startDate = new Date(filter.start_date!) as any;
+            const endDate = new Date(filter.end_date!) as any;
+            if (!isNaN(startDate) || !isNaN(endDate)) {
+                if (!isNaN(startDate) && !isNaN(endDate)) {
+                    startDate.setHours(0, 0, 0, 0);
+                    endDate.setHours(23, 59, 59, 999);
+                    const start = startDate.getTime() - 7 + 0 * 60 * 60 * 1000;
+                    const end = endDate.getTime() - 7 + 0 * 60 * 60 * 1000;
+                    condition.createdAt = { [Op.between]: [start, end] };
+                    conditionDonate.createdAt = { [Op.between]: [start, end] };
+                } else if (!isNaN(startDate) && isNaN(endDate)) {
+                    startDate.setHours(0, 0, 0, 0);
+                    const start = startDate.getTime() - 7 + 0 * 60 * 60 * 1000;
+                    condition.createdAt = { [Op.gte]: start };
+                    conditionDonate.createdAt = { [Op.gte]: start };
+                } else if (isNaN(startDate) && !isNaN(endDate)) {
+                    endDate.setHours(23, 59, 59, 999);
+                    const end = endDate.getTime() - 7 + 0 * 60 * 60 * 1000;
+                    condition.createdAt = { [Op.lte]: end };
+                    conditionDonate.createdAt = { [Op.lte]: end };
+                }
+            }
+        }
+
+        const result = await User.findAndCountAll({
+            limit: recordOfPage,
+            offset,
+            attributes: ['id', 'username', 'fullname'],
+            include: [
+                {
+                    model: Follower,
+                    as: 'followers',
+                    attributes: ['id', 'follower_id', 'createdAt'],
+                    where: condition
+                },
+                {
+                    model: TransactionModel,
+                    as: 'receivers',
+                    attributes: ['id', 'implementer', 'value', 'createdAt'],
+                    where: conditionDonate
+                },
+                {
+                    model: Stream,
+                    as: 'streams',
+                    attributes: ['id', 'view', 'createdAt']
+                }
+            ],
+            where: { id: sub },
+        });
+
+        const percentConfig = await ConfigModel.findOne({
+            where: { key: 'donate-percent' }
+        });
+        const percent = parseInt(percentConfig?.value!);
+
+        let total = { follower: 0, donate: { sum: 0, revice: 0 }, view: 0 };
+        result.rows.forEach((items: any) => {
+            const followers = items?.followers;
+            const donates = items?.receivers;
+            const views = items?.streams;
+
+            if(followers && Array.isArray(followers)) total.follower = followers.length
+            if(donates && Array.isArray(donates)){
+                let sumDonate = 0;
+                donates.forEach((don: any) => {
+                    sumDonate += parseInt(don?.value);
+                });
+                total.donate.sum = sumDonate;
+                total.donate.revice = (sumDonate * percent) / 100;
+            }
+            if(views && Array.isArray(views)){
+                views.forEach((vie: any) => {
+                    total.view = vie?.view;
+                })
+            }
+        })
+
+        return total;
     }
 
     // Tạo stream mới. Nếu creator đang có stream nào khác sẽ dừng tất cả các stream cũ.

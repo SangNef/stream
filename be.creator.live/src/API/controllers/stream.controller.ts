@@ -68,6 +68,17 @@ class UserStreamController {
         }).send(res);
     }
 
+    static statisticalByTime = async (req: ReqEntity, res: Response) => {
+        const sub = req.user.sub;
+        const page = parseInt(req.query.page as string);
+        const limit = parseInt(req.query.limit as string);
+        const result = await UserStreamService.statisticalByTime(sub, page, limit, req.query);
+        return new OK({
+            metadata: result,
+            message: 'Get Statistical By Time Successfully!'
+        }).send(res);
+    }
+
     static createStream = async (req: ReqEntity, res: Response) => {
         const dataBody = req.body;
         const dataBodyAddTime = {
