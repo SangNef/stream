@@ -3,7 +3,7 @@ import helmet from "helmet";
 import morgan from "morgan";
 import bodyParser from "body-parser";
 import cors from "cors";
-import initRouter from "../API/routes"
+import initRouter from "./routes"
 import cookieParser from "cookie-parser";
 import path from "path";
 import { TErr } from "./helpers/asyncHandler";
