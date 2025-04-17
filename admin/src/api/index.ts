@@ -73,7 +73,7 @@ export const post = async (endpoint: string, body: any, config?: any) => {
     }
 }
 
-export const upd = async (endpoint: string, body: any) => {
+export const upd = async (endpoint: string, body?: any) => {
     try {
         const { data } = await api.put(endpoint, body);
         return data;

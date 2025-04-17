@@ -22,7 +22,7 @@ const Login: React.FC = () => {
 
     const onFinish = async (values: { email: string; password: string }) => {
         try {
-            await dispatch(login({ email: values.email, password: values.password }) as any);
+           const res= await dispatch(login({ email: values.email, password: values.password }) as any);
         } catch (err: any) {
             console.error("Login failed:", err.message);
         }
