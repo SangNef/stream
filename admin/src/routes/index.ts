@@ -11,6 +11,7 @@ import StreamManagement from "~/pages/StreamManagement";
 import Profile from "~/pages/Profile";
 import Setting from "~/pages/Setting";
 import ForgotPassword from "~/pages/ForgotPassword";
+import UserManagement from "~/pages/UserManagement";
 
 export const routes = [
     {
@@ -28,6 +29,12 @@ export const routes = [
     {
         path: "/admin-management",
         Component: AdminManagement,
+        Layout: MainLayout,
+        RouteType: PrivateRouter
+    },
+    {
+        path: "/user-management",
+        Component: UserManagement,
         Layout: MainLayout,
         RouteType: PrivateRouter
     },

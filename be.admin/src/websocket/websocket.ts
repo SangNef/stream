@@ -3,21 +3,21 @@ import logger from "jet-logger";
 import sequelize from "../config/database";
 import { saveNewConnectToWebSocket } from "./ws.service";
 import { isReadNotiLive } from "./model_db/ws.model.notification";
-import config from "~/config";
+import config from "~/API/config";
 
 export const arrViewer = new Map(); // Danh sách tài khoản tham gia một livestream.
 export const arrStream = new Map(); // Danh sách livestream.
 const allClient = new Map(); // Danh sách người dùng đang online.
 const SERVER_ID = 'ws-admin';
 
-export default async function WebSocket_Server (server: any) {
+export default async function WebSocket_Server(server: any) {
     const websocket = new WebSocketServer({ server });
     logger.info(`WebSocket running on port: ${config.Port}`);
 
     websocket.on('connection', async (ws, req: any) => {
         const newConnect = await saveNewConnectToWebSocket(ws, req);
         // const streamKey = getStreamKeyInConnection(ws, req);
-        if(!newConnect){
+        if (!newConnect) {
             console.log('[WebSocket]: Tự động ngắt kết nối do token không hợp lệ!');
             return ws.close();
         }
@@ -31,23 +31,23 @@ export default async function WebSocket_Server (server: any) {
         ws.on('message', async (data) => {
             const dataReq = JSON.parse(data.toString());
             // === Áp dụng cho cả creator và user ===  //
-            if(dataReq.type==='set-online'){
+            if (dataReq.type === 'set-online') {
                 ws.send(JSON.stringify({
                     type: 'online-user',
                     payload: { isOnline: true }
                 }))
             }
 
-            if(dataReq.type==='read-noti'){
+            if (dataReq.type === 'read-noti') {
                 const readNoti_transaction = await sequelize.transaction();
                 try {
                     const isRead = await isReadNotiLive(newConnect.id, dataReq.noti_id, readNoti_transaction);
-                    if(typeof(isRead)==='string'){
+                    if (typeof (isRead) === 'string') {
                         ws.send(JSON.stringify({
                             type: 'read-noti-error',
                             message: isRead
                         }))
-                    } else if(typeof(isRead)==='boolean'){
+                    } else if (typeof (isRead) === 'boolean') {
                         ws.send(JSON.stringify({
                             type: 'read-noti-ok',
                             payload: {

@@ -1,123 +1,78 @@
-import {
-    Button,
-    Dialog,
-    DialogActions,
-    DialogContent,
-    DialogContentText,
-    DialogTitle,
-  } from '@mui/material';
-  
-  interface DialogConfirmProps {
-    open: boolean;
-    handleClose: () => void;
-    handleConfirm: () => void;
-    title: string;
-    content?: string;
-    icon?: string;
-  }
-  
-  const DialogConfirm = ({
-    title,
-    content,
-    open,
-    handleClose,
-    handleConfirm,
-    icon,
-  }: DialogConfirmProps) => {
-    return (
-      <Dialog
-        open={open}
-        onClose={handleClose}
-        aria-labelledby='alert-dialog-title'
-        aria-describedby='alert-dialog-description'
-        sx={{
-          '& .MuiDialog-paper': {
-            borderRadius: '16px',
-            width: '100%',
-            maxWidth: '430px',
-            padding: '32px',
-            overflowX: 'hidden',
-          },
-        }}
-      >
-        {icon && (
-          <img
-            src={icon}
-            alt='confirm'
-            style={{
-              width: '60px',
-              height: '60px',
-              margin: '0 auto',
-            }}
-          />
-        )}
-        <DialogTitle
-          id='alert-dialog-title'
-          sx={{
-            textAlign: 'center',
-            fontSize: '24px',
-            color: '#252B3D',
-            fontWeight: 700,
+import { Modal, Button, Typography } from "antd";
+
+interface DialogConfirmProps {
+  open: boolean;
+  handleClose: () => void;
+  handleConfirm: () => void;
+  title: string;
+  content?: string;
+  icon?: string;
+}
+
+const DialogConfirm = ({
+  title,
+  content,
+  open,
+  handleClose,
+  handleConfirm,
+  icon,
+}: DialogConfirmProps) => {
+  return (
+    <Modal
+      open={open}
+      onCancel={handleClose}
+      footer={null}
+      centered
+      width={430}
+      closable={false}
+      bodyStyle={{ padding: 32, textAlign: "center", overflowX: "hidden" }}
+    >
+      {icon && (
+        <img
+          src={icon}
+          alt="confirm"
+          style={{ width: 60, height: 60, marginBottom: 20 }}
+        />
+      )}
+      <Typography.Title level={4} style={{ fontWeight: 700, color: "#252B3D" }}>
+        {title}
+      </Typography.Title>
+
+      {content && (
+        <Typography.Text style={{ fontSize: 16, color: "#5F6B81" }}>
+          {content}
+        </Typography.Text>
+      )}
+
+      <div style={{ display: "flex", justifyContent: "center", gap: 16, marginTop: 32 }}>
+        <Button
+          onClick={handleClose}
+          style={{
+            minWidth: 120,
+            borderRadius: 8,
+            borderColor: "#CBD5E1",
+            color: "#1E293B",
+            fontWeight: 600,
           }}
         >
-          {title}
-        </DialogTitle>
-  
-        {content && (
-          <DialogContent>
-            <DialogContentText
-              id='alert-dialog-description'
-              sx={{
-                textAlign: 'center',
-                fontSize: '18px',
-                color: '#5F6B81',
-              }}
-            >
-              {content}
-            </DialogContentText>
-          </DialogContent>
-        )}
-  
-        <DialogActions
-          sx={{
-            justifyContent: 'center',
-            gap: 2,
-            mt: 2,
+          Huỷ
+        </Button>
+        <Button
+          type="primary"
+          onClick={handleConfirm}
+          style={{
+            minWidth: 120,
+            borderRadius: 8,
+            backgroundColor: "#6366F1",
+            fontWeight: 600,
           }}
+          danger={false}
         >
-          <Button
-            onClick={handleClose}
-            variant='outlined'
-            sx={{
-              minWidth: '120px',
-              borderRadius: '8px',
-              borderColor: '#CBD5E1',
-              color: '#1E293B',
-              fontWeight: 600,
-            }}
-          >
-            Huỷ
-          </Button>
-          <Button
-            onClick={handleConfirm}
-            variant='contained'
-            sx={{
-              minWidth: '120px',
-              borderRadius: '8px',
-              backgroundColor: '#6366F1',
-              fontWeight: 600,
-              color: '#fff',
-              '&:hover': {
-                backgroundColor: '#4F46E5',
-              },
-            }}
-          >
-            Xác nhận
-          </Button>
-        </DialogActions>
-      </Dialog>
-    );
-  };
-  
-  export default DialogConfirm;
-  
+          Xác nhận
+        </Button>
+      </div>
+    </Modal>
+  );
+};
+
+export default DialogConfirm;

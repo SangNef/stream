@@ -1,0 +1,29 @@
+{
+  "development": {
+    "app": {
+      "port": 5200
+    },
+    "username": "root",
+    "password": "dinhsang2309",
+    "database": "livestream",
+    "host": "127.0.0.1",
+    "dialect": "mysql"
+  },
+  "test": {
+    "username": "root",
+    "password": "dinhsang2309",
+    "database": "livestream",
+    "host": "127.0.0.1",
+    "dialect": "mysql"
+  },
+  "production": {
+    "app": {
+      "port": 5102
+    },
+    "username": "ftcom",
+    "password": "ftcom123",
+    "database": "liveapp",
+    "host": "185.227.135.19",
+    "dialect": "mysql"
+  }
+}
