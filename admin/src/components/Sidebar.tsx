@@ -7,8 +7,8 @@ import {
     CreditCardIcon,
     HomeIcon,
     UserIcon,
-    UsersIcon,
     VideoCameraIcon,
+    UserGroupIcon
 } from "@heroicons/react/24/outline";
 
 interface SidebarProps {
@@ -35,6 +35,11 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen }) => {
             href: "/admin-management",
         },
         {
+            label: "Quản trị người dùng",
+            icon: <UserGroupIcon className={iconClass} />,
+            href: "/user-management",
+        },
+        {
             label: "Lịch sử thay đổi",
             icon: <VideoCameraIcon className={iconClass} />,
             href: "/admin-history",
@@ -58,9 +63,8 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen }) => {
 
     return (
         <div
-            className={`bg-[#222E3C] shadow-lg min-h-screen fixed top-0 left-0 w-[264px] transition-transform duration-300 ${
-                isOpen ? "translate-x-0" : "-translate-x-full"
-            }`}>
+            className={`bg-[#222E3C] shadow-lg min-h-screen fixed top-0 left-0 w-[264px] transition-transform duration-300 ${isOpen ? "translate-x-0" : "-translate-x-full"
+                }`}>
             <div className="w-[264px] px-6">
                 <h2 className="py-4 font-bold text-white text-2xl">Corona</h2>
             </div>
@@ -71,9 +75,8 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen }) => {
                 {menuItems.map((item, index) => (
                     <li
                         key={index}
-                        className={`flex items-center space-x-4 py-2 px-6 cursor-pointer font-[400] text-gray-400 hover:text-gray-200 duration-300 ${
-                            location.pathname === item.href ? activeClass : ""
-                        }`}>
+                        className={`flex items-center space-x-4 py-2 px-6 cursor-pointer font-[400] text-gray-400 hover:text-gray-200 duration-300 ${location.pathname === item.href ? activeClass : ""
+                            }`}>
                         <Link to={item.href} className="flex items-center w-full h-full space-x-4">
                             <span>{item.icon}</span>
                             <span className="text-lg">{item.label}</span>

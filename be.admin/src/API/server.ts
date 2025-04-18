@@ -27,7 +27,7 @@ const appMain = async () => {
     res.setHeader("Expires", "0");
 
     if (req.method === "OPTIONS") {
-        return res.sendStatus(200);
+      return res.sendStatus(200);
     }
     next();
   };
@@ -50,7 +50,7 @@ const appMain = async () => {
 
   // Security
   if (config.NodeEnv === NodeEnvs.Production.valueOf()) {
-      app.use(helmet());
+    app.use(helmet());
   }
 
   app.use("/", express.static(path.join(__dirname, "../../public/uploads")));
@@ -63,24 +63,24 @@ const appMain = async () => {
   });
 
   const errHandle = (
-      err: TErr,
-      _: Request,
-      res: Response,
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      next: NextFunction
+    err: TErr,
+    _: Request,
+    res: Response,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    next: NextFunction
   ) => {
-      if (config.NodeEnv !== NodeEnvs.Test.valueOf() && !err?.status) {
-          logger.err(err, true);
-      }
-      const statusCode = err.status || StatusCodes.INTERNAL_SERVER_ERROR;
+    if (config.NodeEnv !== NodeEnvs.Test.valueOf() && !err?.status) {
+      logger.err(err, true);
+    }
+    const statusCode = err.status || StatusCodes.INTERNAL_SERVER_ERROR;
 
-      res.status(statusCode).json({
-          status: statusCode,
-          type: "error",
-          message: err.message || ReasonPhrases.INTERNAL_SERVER_ERROR,
-          errCode: err.errCode,
-      });
-      next(err);
+    res.status(statusCode).json({
+      status: statusCode,
+      type: "error",
+      message: err.message || ReasonPhrases.INTERNAL_SERVER_ERROR,
+      errCode: err.errCode,
+    });
+    next(err);
   }
   app.use(errHandle as any);
 

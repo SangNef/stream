@@ -1,17 +1,16 @@
 import { useEffect, useState } from "react";
-import { user } from "../services/user";
 import { toast } from "react-toastify";
 import {
   Table,
   Switch,
   Typography,
-  Avatar,
+  Button,
   Pagination,
 } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import AdminModal from "~/components/dialog/AdminModal";
 import { deleteSoft, getListAdmin, updateProfile } from "~/api/auth";
-// import { admin } from "../services/admin";
+import CreateAdminModal from "~/components/modal/CreateAdminModal";
 
 interface User {
   id: number;
@@ -27,13 +26,14 @@ const AdminManagement = () => {
   const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(5);
   const [listUsers, setListUsers] = useState<User[]>([]);
-  const [open, setOpen] = useState(false);
+  const [openEditModal, setOpenEditModal] = useState(false);
+  const [openCreateModal, setOpenCreateModal] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
 
   useEffect(() => {
     getListUsers();
   }, []);
-  console.log("đ",listUsers)
+
   const getListUsers = async () => {
     try {
       const res = await getListAdmin();
@@ -45,12 +45,16 @@ const AdminManagement = () => {
 
   const handleEdit = (user: User) => {
     setEditingUser(user);
-    setOpen(true);
+    setOpenEditModal(true);
   };
 
-  const handleClose = () => {
-    setOpen(false);
+  const handleCloseEdit = () => {
+    setOpenEditModal(false);
     setEditingUser(null);
+  };
+
+  const handleCloseCreate = () => {
+    setOpenCreateModal(false);
   };
 
   const handleEditUser = async (updatedUser: User) => {
@@ -111,23 +115,22 @@ const AdminManagement = () => {
       render: (is_root) => (is_root ? "Root" : "User"),
     },
     {
-        title: "Trạng thái",
-        dataIndex: "deletedAt",
-        render: (_, record) =>
-          record.is_root ? (
-            <span style={{ color: "gray" }}>Không thể chặn</span>
-          ) : (
-            <div onClick={(e) => e.stopPropagation()}>
-              <Switch
-                checked={record.deletedAt === null}
-                onChange={() =>
-                  handleToggleStatus(record.id, record.deletedAt === null ? 1 : 0)
-                }
-              />
-            </div>
-          ),
-      },
-      
+      title: "Trạng thái",
+      dataIndex: "deletedAt",
+      render: (_, record) =>
+        record.is_root ? (
+          <span style={{ color: "gray" }}>Không thể chặn</span>
+        ) : (
+          <div onClick={(e) => e.stopPropagation()}>
+            <Switch
+              checked={record.deletedAt === null}
+              onChange={() =>
+                handleToggleStatus(record.id, record.deletedAt === null ? 1 : 0)
+              }
+            />
+          </div>
+        ),
+    },
   ];
 
   const paginatedData = listUsers
@@ -135,8 +138,15 @@ const AdminManagement = () => {
     .slice((page - 1) * rowsPerPage, page * rowsPerPage);
 
   return (
-    <div style={{ width: "100%", paddingLeft:20, paddingRight:20,paddingTop:20 }}>
+    <div style={{ width: "100%", padding: 20 }}>
       <Typography.Title level={4}>Danh Sách Người Dùng</Typography.Title>
+      <Button
+        type="primary"
+        style={{ marginBottom: 16 }}
+        onClick={() => setOpenCreateModal(true)}
+      >
+        Tạo Admin
+      </Button>
       <Table
         columns={columns}
         dataSource={paginatedData}
@@ -159,7 +169,19 @@ const AdminManagement = () => {
           pageSizeOptions={['5', '10', '20', '50']}
         />
       </div>
-      <AdminModal open={open} onClose={handleClose} onEditUser={handleEditUser} editingUser={editingUser} />
+
+      <AdminModal
+        open={openEditModal}
+        onClose={handleCloseEdit}
+        onEditUser={handleEditUser}
+        editingUser={editingUser}
+      />
+
+      <CreateAdminModal
+        open={openCreateModal}
+        onClose={handleCloseCreate}
+        onCreated={getListUsers}
+      />
     </div>
   );
 };
