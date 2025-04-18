@@ -1,7 +1,6 @@
 import { WebSocket, WebSocketServer } from "ws";
 import logger from "jet-logger";
 import sequelize from "../config/database";
-import Comment from "../models/comment"
 import { checkDataInvalid, saveNewConnectToWebSocket } from "./ws.service";
 import { isReadNotiLive } from "./model_db/ws.model.notification";
 import redisClient from "~/API/helpers/redis";
@@ -44,7 +43,7 @@ export default async function WebSocket_Server (server: any) {
             }
         });
     });
-    await sub.subscribe('end-stream', data => {
+    await sub.subscribe('end-stream', async data => {
         const { type, stream_id, message } = JSON.parse(data);
         const viewers = Array.from(arrViewer.values()).filter(items => items?.stream_id === stream_id);
         viewers.forEach((items: any) => {
@@ -52,22 +51,31 @@ export default async function WebSocket_Server (server: any) {
                 items.ws.send(JSON.stringify({ type, message }));
             }
         });
+        for (const [key, value] of arrViewer.entries()) {
+            if (value?.stream_id === stream_id) {
+              arrViewer.delete(key);
+            }
+        }
+        await redisClient.del(`comment-stream-${stream_id}`);
     });
     await sub.subscribe('new-comment', data => {
-        const { type, user, comment_id, payload } = JSON.parse(data);
-        const viewers = Array.from(arrViewer.values()).filter(items => items?.stream_id === payload?.stream_id);
+        // const { type, user, comment_id, payload } = JSON.parse(data);
+        const { type, stream_id, commentList } = JSON.parse(data);
+        // console.log(type, commentList);
+        const viewers = Array.from(arrViewer.values()).filter(items => items?.stream_id === stream_id);
         viewers.forEach((items: any) => {
             if(items?.ws && items?.ws.readyState === WebSocket.OPEN){
-                items.ws.send(JSON.stringify({ type, user, comment_id, content: payload?.content }));
+                // items.ws.send(JSON.stringify({ type, user, comment_id, content: payload?.content }));
+                items.ws.send(JSON.stringify({ type, commentList }));
             }
         });
     });
     await sub.subscribe('delete-comment', data => {
-        const { type, stream_id, comment_id } = JSON.parse(data);
+        const { type, stream_id, commentList } = JSON.parse(data);
         const viewers = Array.from(arrViewer.values()).filter(items => items?.stream_id === stream_id);
         viewers.forEach((items: any) => {
             if(items?.ws && items?.ws.readyState === WebSocket.OPEN){
-                items.ws.send(JSON.stringify({ type, comment_id }));
+                items.ws.send(JSON.stringify({ type, commentList }));
             }
         });
     });
@@ -115,6 +123,13 @@ export default async function WebSocket_Server (server: any) {
                 });
 
                 if(arrStream.get(dataReq.stream_id)){
+                    if(arrViewer.get(`${dataReq.stream_id}${newConnect.id}`)){
+                        return ws.send(JSON.stringify({
+                            type: 'view-stream-error',
+                            message: 'You are watching this livestream!'
+                        }));
+                    }
+
                     arrViewer.set(`${dataReq.stream_id}${newConnect.id}`, {
                         id: newConnect.id,
                         stream_id: dataReq.stream_id,
@@ -136,6 +151,9 @@ export default async function WebSocket_Server (server: any) {
                         user_id: newConnect.id,
                         message: `${newConnect.username} Join Stream`
                     }));
+                    const comments = await redisClient.lRange(`comment-stream-${dataReq.stream_id}`, 0, 19);
+                    const commentList = comments.map(items => JSON.parse(items));
+                    ws.send(JSON.stringify({ type: 'view-comment', commentList }));
                 } else {
                     ws.send(JSON.stringify({
                         type: 'stream-error',
@@ -162,8 +180,14 @@ export default async function WebSocket_Server (server: any) {
                 }
             }
 
+            if(dataReq.type === 'view-more-comment'){
+                const limit = parseInt(dataReq?.limit);
+                const comments = await redisClient.lRange(`comment-stream-${dataReq.stream_id}`, 0, limit);
+                const commentList = comments.map(items => JSON.parse(items));
+                ws.send(JSON.stringify({ type: 'view-comment', commentList }));
+            }
+
             if(dataReq.type==='send-comment'){
-                const sendComment_transaction = await sequelize.transaction();
                 try {
                     const isInvalid = checkDataInvalid(dataReq);
                     if(!isInvalid){
@@ -182,29 +206,26 @@ export default async function WebSocket_Server (server: any) {
                     }
 
                     const formatNewComment = {
-                        stream_id: dataReq.stream_id,
-                        user_id: newConnect.id,
-                        content: dataReq.content
+                        user: newConnect,
+                        content: dataReq.content,
+                        sendAt: new Date()
                     }
-                    const result = await Comment.create(formatNewComment, {
-                        transaction: sendComment_transaction
-                    });
 
-                    await sendComment_transaction.commit();
+                    await redisClient.rPush(`comment-stream-${dataReq.stream_id}`, JSON.stringify(formatNewComment));
+                    const comments = await redisClient.lRange(`comment-stream-${dataReq.stream_id}`, 0, 19);
+                    const commentList = comments.map(items => JSON.parse(items));
+                    
                     await redisClient.publish('new-comment', JSON.stringify({
                         type: 'view-comment',
-                        user: newConnect,
-                        comment_id: result.id,
-                        payload: formatNewComment
+                        stream_id: dataReq.stream_id,
+                        commentList
                     }));
                 } catch (error) {
-                    sendComment_transaction.rollback();
                     console.log('[WebSocket - SendComment]:: Error: ', error);
                 }
             }
 
             if(dataReq.type==='delete-comment'){
-                const deleteComment_transaction = await sequelize.transaction();
                 try {
                     const isInvalid = checkDataInvalid(dataReq);
                     if(!isInvalid){
@@ -214,44 +235,34 @@ export default async function WebSocket_Server (server: any) {
                         }));
                     }
 
-                    const commentExisted = await Comment.findByPk(dataReq.comment_id);
-                    if(!commentExisted){
+                    const comments = await redisClient.lRange(`comment-stream-${dataReq.stream_id}`, 0, 19);
+                    const commentList = comments.map(items => JSON.parse(items));
+                    const commentTarget = commentList[dataReq.index_comment];
+                    if(!commentTarget){
                         return ws.send(JSON.stringify({
                             type: 'comment-error',
                             message: 'Comment Not Existed!'
                         }));
                     }
 
-                    if(commentExisted.stream_id!==dataReq.stream_id){
+
+                    if(commentTarget?.user?.id!==newConnect.id){
                         return ws.send(JSON.stringify({
                             type: 'comment-error',
-                            message: 'Comment Not Exist In LIVE!'
-                        }))
+                            message: 'Accout Enough Rights!'
+                        }));
                     }
 
-                    const isCreator = arrStream.get(dataReq.stream_id);
-                    if(isCreator!==newConnect.id){ // Nếu không phải chủ phiên LIVE.
-                        // Kiểm tra bình luận muốn xóa có phải tài khoản của mình không.
-                        if(commentExisted.user_id!==newConnect.id){
-                            return ws.send(JSON.stringify({
-                                type: 'comment-error',
-                                message: 'You can only delete your own comments!'
-                            }));
-                        }
-                    }
-
-                    await Comment.destroy({
-                        where: { id: dataReq.comment_id },
-                        transaction: deleteComment_transaction
-                    });
-                    await deleteComment_transaction.commit();
+                    await redisClient.lSet(`comment-stream-${dataReq.stream_id}`, dataReq.index_comment, '___DELETED___');
+                    await redisClient.lRem(`comment-stream-${dataReq.stream_id}`, 1, '___DELETED___');
+                    const newComments = await redisClient.lRange(`comment-stream-${dataReq.stream_id}`, 0, 19);
+                    const newCommentList = newComments.map(items => JSON.parse(items));
                     await redisClient.publish('delete-comment', JSON.stringify({
-                        type: 'deleted-comment',
+                        type: 'view-comment',
                         stream_id: dataReq.stream_id,
-                        comment_id: dataReq.comment_id
+                        commentList: newCommentList
                     }));
                 } catch (error) {
-                    deleteComment_transaction.rollback();
                     console.log('[WebSocket - DeleteComment]:: Error: ', error);
                 }
             }
@@ -281,35 +292,6 @@ export default async function WebSocket_Server (server: any) {
                 }
             }
 
-            // if(dataReq.type === 'donate-money'){
-            //     const streamRedis = await redisClient.get(`stream${dataReq.stream_id}`);
-            //     const allViewerStream: any[] = JSON.parse(streamRedis!);
-            //     const isWatching = allViewerStream.find(items => items?.id === newConnect.id);
-            //     if(!isWatching) ws.send(JSON.stringify({
-            //         type: 'donate-error',
-            //         message: 'Bạn chưa tham gia phiên live này!'
-            //     }));
-
-            //     try {
-            //         const sub = newConnect.id;
-            //         const value = dataReq.value;
-            //         const content = dataReq.content;
-            //         const receiver = dataReq.creator_id;
-            //         await UserTransactionService.addNew(sub, 'donate', value, content, receiver);
-
-            //         await redisClient.publish('donate', JSON.stringify({
-            //             type: 'new-donate',
-            //             stream_id: dataReq.stream_id,
-            //             value: dataReq.value,
-            //             content: dataReq.content,
-            //             user: newConnect
-            //         }));
-            //     } catch (error) {
-            //         logger.err('[WebSocket Error]:: Donate Error: ', error);
-            //         console.log(error)
-            //         ws.send(JSON.stringify({ type: 'donate-error', message: error.message }))
-            //     }
-            // }
             if(dataReq.type === 'donate'){
                 const streamRedis = await redisClient.get(`stream${dataReq.stream_id}`);
                 const allViewerStream: any[] = JSON.parse(streamRedis!);
@@ -366,20 +348,24 @@ export default async function WebSocket_Server (server: any) {
             const viewsCurrent = Array.from(arrViewer.values());
             viewsCurrent.forEach(async (items: any) => {
                 if(items?.id === newConnect.id && items?.stream_id){
-                    const dataRedis = await redisClient.get(`stream${items?.stream_id}`);
-                    const streamCurrent: any[] = JSON.parse(dataRedis!);
-                    const changeView = streamCurrent?.filter(items => items?.id!==newConnect.id);
+                    // const dataRedis = await redisClient.get(`stream${items?.stream_id}`);
+                    // const streamCurrent: any[] = JSON.parse(dataRedis!);
+                    // const changeView = streamCurrent?.filter(items => items?.id!==newConnect.id);
 
-                    await redisClient.set(`stream${items.stream_id}`, JSON.stringify(changeView));
+                    console.log('stream_id:', items?.stream_id);
+                    console.log('key:', `stream${items?.stream_id}`);
+                    // console.log('changeView:', changeView);
+
+                    // await redisClient.set(`stream${items?.stream_id}`, JSON.stringify(changeView));
                     await redisClient.decr(`${items?.stream_id}`);
-                    arrViewer.delete(streamCurrent);
+                    // arrViewer.delete(streamCurrent);
+                    arrViewer.delete(`${items.stream_id}${newConnect.id}`);
                     await redisClient.publish('out-stream', JSON.stringify({
                         type: 'outed-stream',
-                        stream_id: items?.stream_id,
+                        stream_id: items.stream_id,
                         user_id: newConnect.id,
                         message: `${newConnect.username} Outed Stream`
                     }));
-                    // broadcastNoti(ws, items.stream_id, newConnect, 'outed-stream', false);
                 }
             });
 

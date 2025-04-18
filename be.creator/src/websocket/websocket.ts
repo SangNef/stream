@@ -1,6 +1,5 @@
 import { WebSocket, WebSocketServer } from "ws";
 import sequelize from "../config/database";
-import Comment from "../models/comment"
 import { checkDataInvalid, findKeyInMap, getStreamKeyInConnection, saveNewConnectToWebSocket } from "./ws.service";
 import { createNotiLive, isReadNotiLive } from "./model_db/ws.model.notification";
 import { spawn } from "child_process";
@@ -50,20 +49,20 @@ export default async function WebSocket_Server (server: any) {
         });
     });
     await sub.subscribe('new-comment', data => {
-        const { type, user, comment_id, payload } = JSON.parse(data);
-        const viewers = Array.from(arrViewer.values()).filter(items => items?.stream_id === payload?.stream_id);
+        const { type, stream_id, commentList } = JSON.parse(data);
+        const viewers = Array.from(arrViewer.values()).filter(items => items?.stream_id === stream_id);
         viewers.forEach((items: any) => {
             if(items?.ws && items?.ws.readyState === WebSocket.OPEN){
-                items.ws.send(JSON.stringify({ type, user, comment_id, content: payload?.content }));
+                items.ws.send(JSON.stringify({ type, commentList }));
             }
         });
     });
     await sub.subscribe('delete-comment', data => {
-        const { type, stream_id, comment_id } = JSON.parse(data);
+        const { type, stream_id, commentList } = JSON.parse(data);
         const viewers = Array.from(arrViewer.values()).filter(items => items?.stream_id === stream_id);
         viewers.forEach((items: any) => {
             if(items?.ws && items?.ws.readyState === WebSocket.OPEN){
-                items.ws.send(JSON.stringify({ type, comment_id }));
+                items.ws.send(JSON.stringify({ type, commentList }));
             }
         });
     });
@@ -326,8 +325,14 @@ export default async function WebSocket_Server (server: any) {
                     // allClient.delete(newConnect.id);
                 }
     
+                if(dataReq.type === 'view-more-comment'){
+                    const limit = parseInt(dataReq?.limit);
+                    const comments = await redisClient.lRange(`comment-stream-${dataReq.stream_id}`, 0, limit);
+                    const commentList = comments.map(items => JSON.parse(items));
+                    ws.send(JSON.stringify({ type: 'view-comment', commentList }));
+                }
+
                 if(dataReq.type==='send-comment'){
-                    const sendComment_transaction = await sequelize.transaction();
                     try {
                         const isInvalid = checkDataInvalid(dataReq);
                         if(!isInvalid){
@@ -346,29 +351,26 @@ export default async function WebSocket_Server (server: any) {
                         }
     
                         const formatNewComment = {
-                            stream_id: dataReq.stream_id,
-                            user_id: newConnect.id,
-                            content: dataReq.content
+                            user: newConnect,
+                            content: dataReq.content,
+                            sendAt: new Date()
                         }
-                        const result = await Comment.create(formatNewComment, {
-                            transaction: sendComment_transaction
-                        });
+
+                        await redisClient.rPush(`comment-stream-${dataReq.stream_id}`, JSON.stringify(formatNewComment));
+                        const comments = await redisClient.lRange(`comment-stream-${dataReq.stream_id}`, 0, 19);
+                        const commentList = comments.map(items => JSON.parse(items));
     
-                        await sendComment_transaction.commit();
                         await redisClient.publish('new-comment', JSON.stringify({
                             type: 'view-comment',
-                            user: newConnect,
-                            comment_id: result.id,
-                            payload: formatNewComment
+                            stream_id: dataReq.stream_id,
+                            commentList
                         }));
                     } catch (error) {
-                        sendComment_transaction.rollback();
                         console.log('[WebSocket - SendComment]:: Error: ', error);
                     }
                 }
     
                 if(dataReq.type==='delete-comment'){
-                    const deleteComment_transaction = await sequelize.transaction();
                     try {
                         const isInvalid = checkDataInvalid(dataReq);
                         if(!isInvalid){
@@ -377,45 +379,27 @@ export default async function WebSocket_Server (server: any) {
                                 message: 'DataInput Invalid!'
                             }));
                         }
-    
-                        const commentExisted = await Comment.findByPk(dataReq.comment_id);
-                        if(!commentExisted){
+
+                        const comments = await redisClient.lRange(`comment-stream-${dataReq.stream_id}`, 0, 19);
+                        const commentList = comments.map(items => JSON.parse(items));
+                        const commentTarget = commentList[dataReq.index_comment];
+                        if(!commentTarget){
                             return ws.send(JSON.stringify({
                                 type: 'comment-error',
                                 message: 'Comment Not Existed!'
                             }));
                         }
-
-                        if(commentExisted.stream_id!==dataReq.stream_id){
-                            return ws.send(JSON.stringify({
-                                type: 'comment-error',
-                                message: 'Comment Not Exist In LIVE!'
-                            }))
-                        }
-
-                        const isCreator = arrStream.get(dataReq.stream_id);
-                        if(isCreator!==newConnect.id){ // Nếu không phải chủ phiên LIVE.
-                            // Kiểm tra bình luận muốn xóa có phải tài khoản của mình không.
-                            if(commentExisted.user_id!==newConnect.id){
-                                return ws.send(JSON.stringify({
-                                    type: 'comment-error',
-                                    message: 'You can only delete your own comments!'
-                                }));
-                            }
-                        }
     
-                        await Comment.destroy({
-                            where: { id: dataReq.comment_id },
-                            transaction: deleteComment_transaction
-                        });
-                        await deleteComment_transaction.commit();
+                        await redisClient.lSet(`comment-stream-${dataReq.stream_id}`, dataReq.index_comment, '___DELETED___');
+                        await redisClient.lRem(`comment-stream-${dataReq.stream_id}`, 1, '___DELETED___');
+                        const newComments = await redisClient.lRange(`comment-stream-${dataReq.stream_id}`, 0, 19);
+                        const newCommentList = newComments.map(items => JSON.parse(items));
                         await redisClient.publish('delete-comment', JSON.stringify({
-                            type: 'deleted-comment',
+                            type: 'view-comment',
                             stream_id: dataReq.stream_id,
-                            comment_id: dataReq.comment_id
+                            commentList: newCommentList
                         }));
                     } catch (error) {
-                        deleteComment_transaction.rollback();
                         console.log('[WebSocket - DeleteComment]:: Error: ', error);
                     }
                 }
