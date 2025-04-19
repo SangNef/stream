@@ -1,6 +1,0 @@
-{
-  "watch": ["spec"],
-  "ext": "ts,html",
-  "ignore": ["spec/support", "src/media/*"],
-  "exec": "npx ts-node --files -r tsconfig-paths/register ./src/api/index.ts"
-}
