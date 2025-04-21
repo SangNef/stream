@@ -1,6 +1,5 @@
 import { literal } from 'sequelize';
 import { BadRequestResponse, NotFoundResponse } from '../core/ErrorResponse';
-import { CREATED, OK } from '../core/SuccessResponse';
 import Follower from '../../models/follower';
 import Stream from '../../models/stream';
 import User from '../../models/user';
@@ -20,12 +19,12 @@ class UserFollowerServie {
                 include: [{
                     model: Stream,
                     as: 'streams',
-                    attributes: ['id', 'thumbnail', 'stream_url', 'title', 'start_time', 'end_time'],
-                    where: { end_time: null}
+                    attributes: ['id', 'thumbnail', 'stream_url', 'title', 'createdAt', 'updatedAt'],
+                    where: { status: 'live' }
                 }]
             },
             order: [['id', 'DESC']],
-            where: { user_id: user_id}
+            where: { user_id }
         });
 
         return result;
@@ -44,7 +43,7 @@ class UserFollowerServie {
             attributes: ['id'],
             include: {
                 model: User,
-                as: 'users',
+                as: 'users_creator',
                 attributes: [
                     'id', 'fullname', 'username', 'avatar',
                     [
@@ -61,7 +60,7 @@ class UserFollowerServie {
                     ]
                 ]
             },
-            where: { follower_id: sub }
+            where: { user_id: sub }
         })
 
         return {
@@ -83,13 +82,13 @@ class UserFollowerServie {
         
         const checkFollowed = await Follower.findOne({ where: {
             user_id: data.user_id,
-            follower_id: data.follower_id
+            creator_id: data.creator_id
         }});
         if(checkFollowed) throw new BadRequestResponse('You Followed This Creator!');
 
         const formatFollower = {
             user_id: data.user_id!,
-            follower_id: data.follower_id!
+            creator_id: data.creator_id!
         }
 
         const result = await Follower.create(formatFollower);
@@ -97,12 +96,12 @@ class UserFollowerServie {
     }
 
     static unfollowCreator = async (data: Partial<FollowerModelEntity>) => {
-        if(Number.isNaN(data.user_id) || Number.isNaN(data.follower_id))
+        if(Number.isNaN(data.user_id) || Number.isNaN(data.creator_id))
             throw new BadRequestResponse('ParamInput Invalid!');
 
         const followedCreator = await Follower.findOne({ where: {
             user_id: data.user_id,
-            follower_id: data.follower_id
+            creator_id: data.creator_id
         }});
         if(!followedCreator) throw new NotFoundResponse('Don\'t follow this creator yet!');
 

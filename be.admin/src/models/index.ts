@@ -6,29 +6,31 @@ import Admin from "./admin";
 import ConfigModel from "./config";
 import User from "./user";
 import TransactionModel from "./transaction";
-import AdminHistory from "./admin.history";
+import AdminAction from "./admin.history";
 import Stream from "./stream";
 import Comment from "./comment";
-import Favourite from "./favourite";
 import Notification from "./notification";
 import Follower from "./follower";
 import DonateItemModel from "./donate.item";
+import Bank from "./bank";
+import Donate from "./donate";
 
 const basename = path.basename(__filename);
 const env = process.env.NODE_ENV || "123";
-const db: any = { ConfigModel, Admin, User, TransactionModel, AdminHistory, Stream, DonateItemModel, Comment, Favourite, Notification, Follower };
+const db: any = { ConfigModel, Admin, User, TransactionModel, AdminAction, Stream, DonateItemModel, Comment, Notification, Follower, Bank, Donate };
 
 db.ConfigModel.initModel(sql);
 db.Admin.initModel(sql);
 db.User.initModel(sql);
 db.TransactionModel.initModel(sql);
-db.AdminHistory.initModel(sql);
+db.AdminAction.initModel(sql);
 db.Stream.initModel(sql);
 db.DonateItemModel.initModel(sql);
 db.Comment.initModel(sql);
-db.Favourite.initModel(sql);
 db.Notification.initModel(sql);
 db.Follower.initModel(sql);
+db.Bank.initModel(sql);
+db.Donate.initModel(sql);
 
 // Khởi tạo Sequelize từ config.ts
 const config = require(path.resolve(__dirname, "../config/config.js"))[env];
@@ -77,13 +79,14 @@ export {
   Admin,
   User,
   TransactionModel,
-  AdminHistory,
+  AdminAction,
   Stream,
   DonateItemModel,
   Comment,
-  Favourite,
   Notification,
   Follower,
+  Bank,
+  Donate,
   sequelize as sequelize,
   Sequelize as Sequelize,
 };

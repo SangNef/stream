@@ -6,7 +6,7 @@ import { OK } from "../core/SuccessResponse";
 import AdminHistoryService from "./admin.history.service";
 
 class AdminStreamService {
-    // Lấy ra tất cả (hoặc tìm kiếm một) stream đang .
+    // Lấy ra tất cả (hoặc tìm kiếm một) stream đang live.
     static getAllStreamLiving = async (page: number, limit: number, search: string) => {
         const currentPage = Number.isNaN(page) ? 1 : page;
         const limitRecords = Number.isNaN(limit) ? 10 : limit;
@@ -21,19 +21,19 @@ class AdminStreamService {
         const result = await Stream.findAndCountAll({
             limit: limitRecords,
             offset: offset,
-            attributes: ['id', 'thumbnail', 'stream_url', 'title', 'start_time', 'end_time', 'status', 'view'],
+            attributes: ['id', 'thumbnail', 'stream_url', 'title', 'status', 'view', 'createdAt', 'updatedAt'],
             include: [
                 {
                     model: User,
                     as: 'users',
-                    attributes: ['id', 'fullname', 'username', 'avatar', 'coin'],
+                    attributes: ['id', 'fullname', 'username', 'avatar', 'balance'],
                     required: false
                 }
             ],
             order: [['view', 'DESC'], ['id', 'DESC']],
             where: {
                 [Op.and]: [
-                    { end_time: null },
+                    { status: 'live' },
                     {
                         [Op.or]: [
                             conditionSearch,
@@ -68,19 +68,19 @@ class AdminStreamService {
         const result = await Stream.findAndCountAll({
             limit: limitRecords,
             offset: offset,
-            attributes: ['id', 'thumbnail', 'stream_url', 'title', 'start_time', 'end_time', 'status', 'view'],
+            attributes: ['id', 'thumbnail', 'stream_url', 'title', 'status', 'view', 'createdAt', 'updatedAt'],
             include: [
                 {
                     model: User,
                     as: 'users',
-                    attributes: ['id', 'fullname', 'username', 'avatar', 'coin'],
+                    attributes: ['id', 'fullname', 'username', 'avatar', 'balance'],
                     required: false
                 }
             ],
             order: [['view', 'DESC'], ['id', 'DESC']],
             where: {
                 [Op.and]: [
-                    { end_time: { [Op.ne]: null } },  // Stream đã kết thúc
+                    { status: 'stop' },  // Stream đã kết thúc
                     {
                         [Op.or]: [
                             conditionSearch,
@@ -117,13 +117,13 @@ class AdminStreamService {
             offset: offset,
             attributes: [
                 'id', 'thumbnail', 'stream_url', 'status',
-                'title', 'start_time', 'end_time', 'view', 'deletedAt',
-                [literal(`TIMESTAMPDIFF(SECOND, start_time, end_time)`), 'timeLive'],
+                'title', 'view', 'createdAt', 'updatedAt', 'deletedAt',
+                [literal(`TIMESTAMPDIFF(SECOND, createdAt, updatedAt)`), 'timeLive'],
             ],
             include: [{
                 model: User,
                 as: 'users',
-                attributes: ['id', 'fullname', 'username', 'avatar', 'coin']
+                attributes: ['id', 'fullname', 'username', 'avatar', 'balance']
             }],
             order: [['id', 'DESC'], ['view', 'DESC']],
             where: condition,
@@ -144,7 +144,7 @@ class AdminStreamService {
 
         const streamLiving = await Stream.findOne({
             where: {
-                end_time: null,
+                status: 'live',
                 id: streamid
             }
         });
@@ -153,7 +153,6 @@ class AdminStreamService {
         const streamUrlStoped = 'stopped:' + streamLiving.stream_url;
         const formatStream = {
             stream_url: streamUrlStoped,
-            end_time: new Date(),
             status: 'stop' as any
         }
 
@@ -162,11 +161,7 @@ class AdminStreamService {
         });
         await AdminHistoryService.addNew({
             admin_id: sub,
-            action: 'put',
-            model: 'stream',
-            data_input: JSON.stringify({ stream_id: streamid }),
-            init_value: JSON.stringify(streamLiving),
-            change_value: JSON.stringify(formatStream)
+            action: `Đã cấm livestream ${streamid}`
         });
 
         return new OK({ message: "Stopped Livestream Successfully!" });

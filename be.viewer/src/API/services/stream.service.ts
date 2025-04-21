@@ -12,12 +12,12 @@ class UserStreamService {
         const offset = (pageCurrent - 1) * recordOfPage;
 
         let condition = {} as any;
-        if (is_streaming) condition.end_time = null; // Chỉ lấy stream đang live.
+        if (is_streaming) condition.status = 'live'; // Chỉ lấy stream đang live.
 
         const result = await Stream.findAndCountAll({
             limit: recordOfPage,
             offset,
-            attributes: ['id', 'thumbnail', 'stream_url', 'title', 'start_time', 'end_time', 'status', 'view'],
+            attributes: ['id', 'thumbnail', 'stream_url', 'title', 'status', 'view', 'createdAt', 'deletedAt'],
             include: {
                 model: User,
                 as: 'users',
@@ -98,8 +98,8 @@ class UserStreamService {
             offset: offset,
             attributes: [
                 'id', 'thumbnail', 'stream_url', 'status',
-                'title', 'start_time', 'end_time', 'view', 'deletedAt',
-                [literal(`TIMESTAMPDIFF(SECOND, start_time, end_time)`), 'timeLive'],
+                'title', 'view', 'createdAt', 'updatedAt', 'deletedAt',
+                [literal(`TIMESTAMPDIFF(SECOND, createdAt, updatedAt)`), 'timeLive'],
             ],
             include: [{
                 model: User,
@@ -136,7 +136,7 @@ class UserStreamService {
                 where: { id: creator_id },
                 required: true
             },
-            where: { end_time: null }
+            where: { status: 'live' }
         });
 
         return result;
@@ -160,12 +160,12 @@ class UserStreamService {
                     model: Stream,
                     as: 'streams',
                     attributes: [
-                        'id', 'thumbnail', 'stream_url', 'title', 'start_time', 'end_time', 'status', 'view',
-                        [literal(`TIMESTAMPDIFF(SECOND, start_time, end_time)`), 'timeLive']
+                        'id', 'thumbnail', 'stream_url', 'title', 'status', 'view', 'createdAt', 'updatedAt',
+                        [literal(`TIMESTAMPDIFF(SECOND, createdAt, updatedAt)`), 'timeLive']
                     ]
                 }]
             },
-            where: { follower_id: sub }
+            where: { user_id: sub }
         });
 
         return {

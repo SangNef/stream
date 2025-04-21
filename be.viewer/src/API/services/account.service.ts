@@ -2,11 +2,10 @@ import { col, fn, Op } from 'sequelize';
 import { BadRequestResponse, NotFoundResponse } from '../core/ErrorResponse';
 import { compare, hash } from '../helpers/bcrypt';
 import { jwtSignAccessToken, jwtSignRefreshToken } from '../helpers/jwt';
-import { User } from "../../models/index";
+import { Follower, User } from "../../models/index";
 import Stream from '../../models/stream';
-import Favourite from "../../models/favourite";
 import * as dotenv from "dotenv";
-import { UserModelEntity } from '../../type/app.entities';
+import { UserModelEntity, UserRole } from '../../type/app.entities';
 
 dotenv.config();
 
@@ -26,18 +25,18 @@ class UserAccountService {
                     [fn('COUNT', col('streams.user_id')), 'totalStream']
                 ],
                 include: {
-                    model: Favourite,
-                    as: 'favourites',
+                    model: Follower,
+                    as: 'creators',
                     attributes: [
-                        [fn('COUNT', col('favourites.stream_id')), 'totalFollower']
+                        [fn('COUNT', col('creators.creator_id')), 'totalFollower']
                     ]
                 }
             },
             {
-                model: Favourite,
-                as: 'favourites',
+                model: Follower,
+                as: 'viewers',
                 attributes: [
-                    [fn('COUNT', col('favourites.user_id')), 'totalFollow']
+                    [fn('COUNT', col('viewers.user_id')), 'totalFollow']
                 ]
             }
         ]
@@ -50,7 +49,7 @@ class UserAccountService {
 
             condition[Op.or].push(
                 { name: { [Op.like]: stringQuery}},
-                { coin: { [Op.like]: stringQuery}}
+                { balance: { [Op.like]: stringQuery}}
             );
         }
 
@@ -103,9 +102,9 @@ class UserAccountService {
             fullname: data.fullname!,
             username: data.username,
             password: await hash(data.password),
-            role: data.role? data.role: 'user',
+            role: data.role? data.role: 'user' as UserRole,
             avatar: data.avatar?? null,
-            coin: data.coin? data.coin: 0
+            balance: data.balance? data.balance: 0
         }
         const result = await User.create(formatUser)
         return result;

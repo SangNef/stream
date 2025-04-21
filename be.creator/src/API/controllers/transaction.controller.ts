@@ -4,19 +4,6 @@ import { UserTransactionService } from "../services";
 import { Response } from "express";
 
 class UserTransactionController {
-    static getUsersDonated = async (req: ReqEntity, res: Response) => {
-        const sub = req.user?.sub;
-        const page = parseInt(req.query.page as string);
-        const limit = parseInt(req.query.limit as string);
-        const search = req.query.search as string;
-
-        const result = await UserTransactionService.getListInfoUserDonated(sub, page, limit, search);
-        return new OK({
-            metadata: result,
-            message: 'Get List Donate Successfully!'
-        }).send(res);
-    }
-
     static getHistoryTransaction = async (req: ReqEntity, res: Response) => {
         const page = parseInt(req.query.page as string);
         const limit = parseInt(req.query.limit as string);

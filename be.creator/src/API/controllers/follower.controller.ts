@@ -26,8 +26,8 @@ class UserFollowerController {
 
     static addNewFollow = async (req: ReqEntity, res: Response) => {
         const data = {
-            follower_id: req.user.sub,
-            user_id: parseInt(req.params.user_id)
+            user_id: req.user.sub,
+            creator_id: parseInt(req.params.creator_id)
         }
         const result = await UserFollowerServie.followCreator(data);
         return new CREATED({ metadata: result, message: "Followed Successfully!"}).send(res);
@@ -36,7 +36,7 @@ class UserFollowerController {
     static unfollow = async (req: ReqEntity, res: Response) => {
         const data = {
             user_id: req.user.sub,
-            follower_id: parseInt(req.params.follower_id)
+            creator_id: parseInt(req.params.creator_id)
         }
         const result = await UserFollowerServie.unfollowCreator(data);
         return new OK({ metadata: result, message: "Unfollowed Successfully!"}).send(res);

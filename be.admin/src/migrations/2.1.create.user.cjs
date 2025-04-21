@@ -24,7 +24,7 @@ module.exports = {
       role: {
         type: Sequelize.STRING
       },
-      coin: {
+      balance: {
         type: Sequelize.INTEGER
       },
       phone: {

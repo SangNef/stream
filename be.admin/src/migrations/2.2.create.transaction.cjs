@@ -8,7 +8,7 @@ module.exports = {
         autoIncrement: true,
         primaryKey: true
     },
-    implementer: {
+    user_id: {
         type: Sequelize.INTEGER,
         allowNull: true,
         references: {
@@ -17,35 +17,16 @@ module.exports = {
         },
         onUpdate: 'CASCADE'
     },
-    receiver: {
-        type: Sequelize.INTEGER,
-        allowNull: false,
-        references: {
-            model: 'Users',
-            key: 'id'
-        },
-        onUpdate: 'CASCADE'
-    },
     type: {
-        type: Sequelize.ENUM('recharge', 'donate', 'withdraw'),
+        type: Sequelize.ENUM('deposit', 'withdraw'),
         allowNull: false
     },
-    is_success: {
-        type: Sequelize.BOOLEAN,
-        allowNull: false,
-        defaultValue: false
-    },
-    is_cancel: {
-        type: Sequelize.BOOLEAN,
-        allowNull: false,
-        defaultValue: false
-    },
-    value: {
+    amount: {
       type: Sequelize.DECIMAL(10, 2),
       allowNull: false
     },
-    content: {
-        type: Sequelize.STRING,
+    status: {
+        type: Sequelize.ENUM('pending', 'success', 'cancel'),
         allowNull: true
     },
       createdAt: {

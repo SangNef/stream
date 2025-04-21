@@ -10,6 +10,7 @@ import fs from "fs";
 import { nmsConfig } from "~/config/nms";
 import Stream from "../models/stream";
 import redisClient from "~/API/helpers/redis";
+import { StreamStatus } from "~/type/app.entities";
 
 export const arrViewer = new Map(); // Danh sách tài khoản tham gia một livestream.
 export const arrStream = new Map(); // Danh sách livestream.
@@ -439,7 +440,7 @@ export default async function WebSocket_Server (server: any) {
                     if(streamExisted){
                         const views = await redisClient.get(`${streamid}`);
                         const parseIntViews = views? parseInt(views): 0;
-                        await Stream.update({ view: parseIntViews, status: 'stop', end_time: new Date() }, { where: { id: streamid }});
+                        await Stream.update({ view: parseIntViews, status: 'stop' as StreamStatus }, { where: { id: streamid }});
                         await redisClient.del(`${streamid}`);
                         await redisClient.del(`stream${streamid}`);
                     }

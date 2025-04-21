@@ -13,7 +13,6 @@ router.use(asyncHandler(AuthMiddleWare.checkAuth as any));
 router.use(asyncHandler(AuthMiddleWare.isRoleAdmin as any));
 //Admin
 router.get('/get-list', asyncHandler(AdminController.getListAdmin as any));
-router.post('/create-new-admin', asyncHandler(AdminController.signup as any));
 router.put('/update/profile', asyncHandler(AdminController.updateAdminAccount as any));
 //User
 router.get('/get-list/user/role-user', asyncHandler(AdminController.getListUser));
@@ -40,6 +39,7 @@ router.get('/donate-item/get-list', asyncHandler(AdminDonateItemController.getLi
 router.use(asyncHandler(AuthMiddleWare.isRootAdmin as any));
 // Admin
 router.get('/history/get-list', asyncHandler(AdminHistoryController.getHistories));
+router.post('/create-new-admin', asyncHandler(AdminController.signup as any));
 router.delete('/delete/:id', asyncHandler(AdminController.softDeleteAdmin as any));
 
 // Donate Item

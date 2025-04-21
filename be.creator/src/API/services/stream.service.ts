@@ -3,8 +3,8 @@ import { BadRequestResponse, NotFoundResponse } from '../core/ErrorResponse';
 import Stream from '../../models/stream';
 import User from '../../models/user';
 import Follower from '../../models/follower';
-import { StreamModelEntity } from '~/type/app.entities';
-import { ConfigModel, TransactionModel } from '~/models';
+import { StreamModelEntity, StreamStatus } from '~/type/app.entities';
+import { ConfigModel, Donate, TransactionModel } from '~/models';
 
 interface FilterStream extends StreamModelEntity {
     start_date: string
@@ -19,12 +19,12 @@ class UserStreamService {
         const offset = (pageCurrent - 1) * recordOfPage;
 
         let condition = {} as any;
-        if (is_streaming) condition.end_time = null; // Chỉ lấy stream đang live.
+        if (is_streaming) condition.status = 'live'; // Chỉ lấy stream đang live.
 
         const result = await Stream.findAndCountAll({
             limit: recordOfPage,
             offset,
-            attributes: ['id', 'thumbnail', 'stream_url', 'title', 'start_time', 'end_time', 'status', 'view'],
+            attributes: ['id', 'thumbnail', 'stream_url', 'title', 'status', 'view', 'createdAt', 'updatedAt'],
             include: {
                 model: User,
                 as: 'users',
@@ -102,8 +102,8 @@ class UserStreamService {
             offset: offset,
             attributes: [
                 'id', 'thumbnail', 'stream_url', 'status',
-                'title', 'start_time', 'end_time', 'view', 'deletedAt',
-                [literal(`TIMESTAMPDIFF(SECOND, start_time, end_time)`), 'timeLive'],
+                'title', 'view', 'createdAt', 'updatedAt', 'deletedAt',
+                [literal(`TIMESTAMPDIFF(SECOND, createdAt, updatedAt)`), 'timeLive'],
             ],
             order: [['id', 'DESC'], ['view', 'DESC']],
             where: condition
@@ -152,7 +152,7 @@ class UserStreamService {
                 where: { id: creator_id },
                 required: true
             },
-            where: { end_time: null }
+            where: { status: 'live' }
         });
 
         return result;
@@ -170,18 +170,18 @@ class UserStreamService {
             attributes: ['id'],
             include: {
                 model: User,
-                as: 'users',
+                as: 'users_creator',
                 attributes: ['id', 'fullname', 'username', 'avatar'],
                 include: [{
                     model: Stream,
                     as: 'streams',
                     attributes: [
-                        'id', 'thumbnail', 'stream_url', 'title', 'start_time', 'end_time', 'status', 'view',
-                        [literal(`TIMESTAMPDIFF(SECOND, start_time, end_time)`), 'timeLive']
+                        'id', 'thumbnail', 'stream_url', 'title', 'status', 'view', 'createdAt', 'updatedAt',
+                        [literal(`TIMESTAMPDIFF(SECOND, createdAt, updatedAt)`), 'timeLive']
                     ]
                 }]
             },
-            where: { follower_id: sub }
+            where: { user_id: sub }
         });
 
         return {
@@ -199,7 +199,8 @@ class UserStreamService {
         const offset = (pageCurrent - 1) * recordOfPage;
 
         let condition = {} as any, conditionDonate = {} as any;
-        conditionDonate.type = 'donate';
+        // conditionDonate.type = 'donate';
+        // conditionDonate.user_id = '';
         if(filter.start_date || filter.end_date){
             const startDate = new Date(filter.start_date!) as any;
             const endDate = new Date(filter.end_date!) as any;
@@ -237,15 +238,14 @@ class UserStreamService {
                     where: condition
                 },
                 {
-                    model: TransactionModel,
-                    as: 'receivers',
-                    attributes: ['id', 'implementer', 'value', 'createdAt'],
-                    where: conditionDonate
-                },
-                {
                     model: Stream,
                     as: 'streams',
-                    attributes: ['id', 'view', 'createdAt']
+                    attributes: ['id', 'view', 'createdAt'],
+                    include: [{
+                        model: Donate,
+                        as: 'donates',
+                        attributes: ['id', 'item_id', 'amount']
+                    }]
                 }
             ],
             where: { id: sub },
@@ -257,24 +257,23 @@ class UserStreamService {
         const percent = parseInt(percentConfig?.value!);
 
         let total = { follower: 0, donate: { sum: 0, revice: 0 }, view: 0 };
+        let sumDonate = 0;
         result.rows.forEach((items: any) => {
             const followers = items?.followers;
-            const donates = items?.receivers;
-            const views = items?.streams;
+            const streams = items?.streams;
+            // const donates = items?.receivers;
+            // const views = items?.streams;
 
             if(followers && Array.isArray(followers)) total.follower = followers.length
-            if(donates && Array.isArray(donates)){
-                let sumDonate = 0;
-                donates.forEach((don: any) => {
-                    sumDonate += parseInt(don?.value);
+            if(streams && Array.isArray(streams)) {
+                streams.forEach((str: any) => {
+                    total.view += str?.view;
+                    str?.donates?.forEach((don: any) => {
+                        sumDonate += parseInt(don?.amount);
+                    });
+                    total.donate.sum = sumDonate;
+                    total.donate.revice = (sumDonate * percent) / 100;
                 });
-                total.donate.sum = sumDonate;
-                total.donate.revice = (sumDonate * percent) / 100;
-            }
-            if(views && Array.isArray(views)){
-                views.forEach((vie: any) => {
-                    total.view = vie?.view;
-                })
             }
         })
 
@@ -293,24 +292,22 @@ class UserStreamService {
         if (!userExisted) throw new NotFoundResponse('User Not Exist!');
         const streamsLiving = await Stream.findAll({
             attributes: ['id', 'status'],
-            where: { user_id: userExisted?.id, end_time: null }
+            where: { user_id: userExisted?.id, status: 'live' }
         });
         if(streamsLiving){
             streamsLiving.forEach(async (items) => {
                 await Stream.update(
-                    { end_time: new Date(), status: 'stop' },
+                    { status: 'stop' as StreamStatus },
                     { where: { id: items?.id } }
                 );
             });
         }
 
-        const today = new Date();
         const formatStream = {
             user_id: data.user_id!,
             thumbnail: data.thumbnail,
             stream_url: data.stream_url!,
             title: data.title,
-            start_time: today,
             status: 'live'  as any,
             view: 0
         }
@@ -325,14 +322,7 @@ class UserStreamService {
 
         const streamExisted = await Stream.findByPk(id);
         if (!streamExisted) throw new NotFoundResponse('Stream Not Exist!');
-        if (streamExisted.end_time !== null) throw new BadRequestResponse('Can\'t Update Stream Ended!');
-        let endTime;
-        if (data.end_time) {
-            endTime = new Date(data.end_time);
-            const today = new Date();
-            if (endTime.setHours(endTime.getHours() + 7) > today.setHours(today.getHours() + 7))
-                throw new BadRequestResponse('EndTime Invalid!');
-        }
+        if (streamExisted.status === 'stop') throw new BadRequestResponse('Can\'t Update Stream Ended!');
 
         if (data.thumbnail) {
             if (typeof (data.thumbnail) !== 'string' || data.thumbnail.trim() === '')
@@ -343,7 +333,6 @@ class UserStreamService {
             thumbnail: data.thumbnail? data.thumbnail: streamExisted.thumbnail,
             stream_url: data.stream_url? data.stream_url: streamExisted.stream_url,
             title: data.title? data.title: streamExisted.title,
-            end_time: streamExisted.end_time? streamExisted.end_time: endTime? new Date(): null,
             status: 'stop' as any
         }
         const result = await Stream.update(formatStream, {

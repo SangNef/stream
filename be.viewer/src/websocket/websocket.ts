@@ -7,6 +7,7 @@ import redisClient from "~/API/helpers/redis";
 import config from "~/config";
 import { UserStreamService, UserTransactionService } from "~/API/services";
 import { DonateItemModel } from "~/models";
+import { addNewDonate } from "./model_db/ws.model.donate";
 
 export const arrViewer = new Map(); // Danh sách tài khoản tham gia một livestream.
 export const arrStream = new Map(); // Danh sách livestream.
@@ -325,17 +326,23 @@ export default async function WebSocket_Server (server: any) {
 
                     const sub = newConnect.id;
                     const value = valueDonate!==0? valueDonate: dataReq.value;
-                    const content = dataReq.content;
-                    const receiver = dataReq.creator_id;
-                    await UserTransactionService.addNew(sub, 'donate', value, content, receiver);
-
-                    await redisClient.publish('donate', JSON.stringify({
-                        type: 'new-donate',
+                    const dataDonate = {
+                        item_id: dataReq.item_id || null,
                         stream_id: dataReq.stream_id,
-                        value: dataReq.value,
-                        content: dataReq.content,
-                        user: newConnect
-                    }));
+                        amount: value
+                    }
+                    const result = await addNewDonate(sub, dataDonate)
+                    if(typeof(result)==='string'){
+                        return ws.send(JSON.stringify({ type: 'donate-error', message: result }));
+                    } else if (result===true){
+                        await redisClient.publish('donate', JSON.stringify({
+                            type: 'new-donate',
+                            stream_id: dataReq.stream_id,
+                            value: dataReq.value,
+                            content: dataReq.content,
+                            user: newConnect
+                        }));
+                    }
                 } catch (error) {
                     logger.err('[WebSocket Error]:: Donate Error: ', error);
                     console.log(error)

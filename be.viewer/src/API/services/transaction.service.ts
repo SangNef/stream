@@ -1,8 +1,9 @@
-import { literal, Op } from "sequelize";
+import { Op } from "sequelize";
 import User from "../../models/user";
 import ConfigModel from "../../models/config";
 import TransactionModel from "../../models/transaction";
 import { BadRequestResponse, NotFoundResponse } from "../core/ErrorResponse";
+import { TransactionStatus, TransactionType } from "~/type/app.entities";
 
 class UserTransactionService {
     // User/Creator: Lấy lịch sử giao dịch của chính mình.
@@ -20,23 +21,18 @@ class UserTransactionService {
         const result = await TransactionModel.findAndCountAll({
             limit: recordsOfPage,
             offset,
-            attributes: ['id', 'implementer', 'receiver', 'type', 'value', 'content', 'createdAt'],
+            attributes: ['id', 'user_id', 'type', 'amount', 'status', 'createdAt'],
             order: [['id', 'DESC']],
-            where: {
-                [Op.or]: [
-                    { implementer: user_id },
-                    { receiver: user_id }
-                ]
-            }
+            where: { user_id }
         });
 
         let totalIn = 0, totalOut = 0;
         result.rows.map(items => {
-            if(items.implementer===user_id){
-                totalOut += parseInt(items.value);
+            if(items.type==='withdraw'){
+                totalOut += parseInt(items.amount as any);
             }
-            if(items.receiver===user_id){
-                totalIn += parseInt(items.value);
+            if(items.type==='deposit'){
+                totalIn += parseInt(items.amount as any);
             }
         });
 
@@ -52,63 +48,20 @@ class UserTransactionService {
     }
 
     // Chỉ dành cho user/creator.
-    static addNew = async (sub: number, type: 'recharge' | 'donate' | 'withdraw', value: number, content: string, receiver?: number) => {
+    static addNew = async (sub: number, type: 'deposit' | 'withdraw', value: number) => {
         if(
             Number.isNaN(value) ||
-            (type!=='recharge' && type!=='donate')
+            (type!=='deposit' && type!=='withdraw')
         ) throw new BadRequestResponse('DataInput Invalid!');
 
-        let impId = null, infoUser: User | null = {} as any;
-        if(type==='donate'){
-            infoUser = await User.findByPk(sub);
-            if(Number.isNaN(receiver))
-                throw new BadRequestResponse('Receiver Invalid!');
-            if(infoUser!.coin < value)
-                throw new BadRequestResponse('Coin Enough!');
-
-            impId = sub;
-        }
-
         const formatTransaction = {
-            implementer: impId,
-            receiver: impId? receiver!: sub,
-            type,
-            is_success: type==='donate'? true: false,
-            is_cancel: false,
-            value: value as any,
-            content: type==='recharge'?
-                (content && typeof(content)==='string' && content.trim()!=='')?
-                content:
-                'NẠP TIỀN HỆ THỐNG':
-                (content && typeof(content)==='string' && content.trim()!=='')?
-                content:
-                `ỦNG HỘ NHÀ SÁNG TẠO ${value}đ.`
+            user_id: sub,
+            type: type as TransactionType,
+            amount: value,
+            status: 'pending' as TransactionStatus
         }
 
         const result = await TransactionModel.create(formatTransaction);
-
-        if(type==='donate'){
-            let percent = 0;
-            const keyCommissionPercent = await ConfigModel.findOne({ where: {
-                key: 'donate-percent'
-            }});
-            if(keyCommissionPercent){
-                percent = parseInt(keyCommissionPercent.value)/100;
-            }
-
-            const infoRec = await User.findByPk(receiver);
-            const totalCoin = infoRec?.coin! + (value*percent);
-
-            const updateCoin = infoUser!.coin - value;
-            await User.update(
-                { coin: updateCoin },
-                { where: { id: sub }}
-            );
-            await User.update(
-                { coin: totalCoin },
-                { where: { id: receiver } }
-            );
-        }
 
         return result;
     }

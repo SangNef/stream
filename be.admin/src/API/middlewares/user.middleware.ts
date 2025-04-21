@@ -64,7 +64,7 @@ class AuthMiddleWare {
     const sub = req.user?.sub;
     const isRoot = await Admin.findOne({ where: {
       id: sub,
-      is_root: true
+      role: 'super_admin'
     }});
     if(!isRoot){
       res.status(400).json({ message: "Account Enough Rights!"});

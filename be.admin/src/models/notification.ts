@@ -1,14 +1,15 @@
 import { Model, DataTypes, Optional, Sequelize } from 'sequelize';
 import User from './user';
-import { NotiModelEntity } from '~/type/app.entities';
+import { NotiModelEntity, NotiModelType } from '~/type/app.entities';
 
 class Notification extends Model<NotiModelEntity, Optional<NotiModelEntity, 'id'>> implements NotiModelEntity {
   public id!: number
   public user_id!: number
-  public type!: 'live' | 'coin'
+  public type!: NotiModelType
   public title!: string
   public content!: string
   public is_read!: boolean
+  public navigate_to!: string
   public readonly createdAt!: Date
   public readonly updatedAt!: Date
   public readonly deletedAt?: Date
@@ -25,12 +26,17 @@ class Notification extends Model<NotiModelEntity, Optional<NotiModelEntity, 'id'
         references: {
           model: 'User',
           key: 'id'
-        }
+        },
+        onUpdate: 'CASCADE'
       },
-      type: DataTypes.ENUM('live', 'coin'),
+      type: DataTypes.ENUM(...Object.values(NotiModelType)),
       title: DataTypes.STRING,
       content: DataTypes.STRING,
-      is_read: DataTypes.BOOLEAN
+      is_read: DataTypes.BOOLEAN,
+      navigate_to: {
+        type: DataTypes.STRING,
+        allowNull: true
+      }
     }, {
       sequelize,
       modelName: 'Notification',

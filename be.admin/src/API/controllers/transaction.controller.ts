@@ -21,19 +21,16 @@ class AdminTransactionController {
         const sub = req.user?.sub;
         const page = parseInt(req.query.page as string);
         const limit = parseInt(req.query.limit as string);
-        const implementer = (req.query.implementer==='null' || req.query.implementer===null)? null: parseInt(req.query.implementer as string);
-        const receiver = parseInt(req.query.receiver as string);
+        const user_id = parseInt(req.query.user_id as string);
         const type = req.query.type as string;
-        const is_all = stringToBoolean(req.query.is_all as string);
-        const is_success = stringToBoolean(req.query.is_success as string);
-        const is_cancel = stringToBoolean(req.query.is_cancel as string);
-        const value = parseInt(req.query.value as string);
+        const status = req.query.status as string;
+        const amount = parseInt(req.query.amount as string);
         const min_value = parseInt(req.query.min_value as string);
         const max_value = parseInt(req.query.max_value as string);
         const start_date = req.query.start_date as string;
         const end_date = req.query.end_date as string;
 
-        const result = await AdminTransactionService.getTransactions(sub, page, limit, implementer, receiver, type, is_all, is_success, is_cancel, min_value, max_value, value, start_date, end_date);
+        const result = await AdminTransactionService.getTransactions(sub, page, limit, user_id, type, status, min_value, max_value, amount, start_date, end_date);
         return new OK({
             metadata: result,
             message: 'Get Transactions Successfully!'

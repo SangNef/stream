@@ -68,11 +68,7 @@ class AdminController {
         const result = await AdminService.signup(req.user.sub, data);
         await AdminHistoryService.addNew({
             admin_id: req.user?.sub,
-            action: 'post',
-            model: 'admin',
-            data_input: JSON.stringify(data),
-            init_value: null,
-            change_value: JSON.stringify(result)
+            action: `Thêm mới tài khoản quản trị viên. Dữ liệu vào: ${JSON.stringify(data)}`
         });
         return new CREATED({
             metadata: result,
@@ -86,11 +82,7 @@ class AdminController {
         const result = await AdminService.createUserAccount(data);
         await AdminHistoryService.addNew({
             admin_id: req.user?.sub,
-            action: 'post',
-            model: 'user',
-            data_input: JSON.stringify(data),
-            init_value: null,
-            change_value: JSON.stringify(result)
+            action: `Thêm mới tài khoản người dùng. Dữ liệu vào: ${JSON.stringify(data)}`
         });
         return new CREATED({
             metadata: result,

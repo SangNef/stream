@@ -1,9 +1,9 @@
 import UserAccountController from "./account.controller";
-import UserFavouriteController from "./favourite.controller";
 import UserFollowerController from "./follower.controller";
 import UserStreamController from "./stream.controller";
 import UserDonateItemController from "./donate.item.controller";
-import UserCommentController from "./comment.controller";
 import UserTransactionController from "./transaction.controller";
+import UserDonateController from "./donate.controller";
+import UserBankController from "./bank.controller";
 import AuthController from "./auth.controller";
-export { UserAccountController, UserFavouriteController, UserFollowerController, UserStreamController, UserDonateItemController, UserCommentController, UserTransactionController, AuthController };
+export { UserAccountController, UserFollowerController, UserStreamController, UserDonateItemController, UserTransactionController, UserDonateController, UserBankController, AuthController };

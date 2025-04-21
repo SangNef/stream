@@ -1,5 +1,5 @@
 import { Model, DataTypes, Optional, Sequelize } from 'sequelize';
-import { UserModelEntity } from '~/type/app.entities';
+import { UserModelEntity, UserRole } from '~/type/app.entities';
 
 class User extends Model<UserModelEntity, Optional<UserModelEntity, 'id'>> implements UserModelEntity {
   public id!: number
@@ -7,8 +7,8 @@ class User extends Model<UserModelEntity, Optional<UserModelEntity, 'id'>> imple
   public username!: string
   public password!: string
   public avatar!: string | null
-  public role!: 'user' | 'creator'
-  public coin!: number
+  public role!: UserRole
+  public balance!: number
   public phone!: string | null
   public readonly createdAt!: Date
   public readonly updatedAt!: Date
@@ -25,8 +25,8 @@ class User extends Model<UserModelEntity, Optional<UserModelEntity, 'id'>> imple
       username: DataTypes.STRING,
       password: DataTypes.STRING,
       avatar: DataTypes.STRING,
-      role: DataTypes.ENUM('creator', 'user'),
-      coin: DataTypes.INTEGER,
+      role: DataTypes.ENUM(...Object.values(UserRole)),
+      balance: DataTypes.INTEGER,
       phone: {
         type: DataTypes.STRING,
         allowNull: true

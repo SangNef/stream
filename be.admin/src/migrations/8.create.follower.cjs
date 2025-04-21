@@ -16,7 +16,7 @@ module.exports = {
                 key: 'id'
             }
         },
-        follower_id: {
+        creator_id: {
             type: Sequelize.INTEGER,
             allowNull: false,
             references: {

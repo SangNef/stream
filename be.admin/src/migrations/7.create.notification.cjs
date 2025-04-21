@@ -17,7 +17,7 @@ module.exports = {
         }
       },
       type: {
-        type: Sequelize.ENUM('live', 'coin')
+        type: Sequelize.ENUM('follow', 'live', 'transaction')
       },
       title: {
         type: Sequelize.STRING
@@ -27,6 +27,10 @@ module.exports = {
       },
       is_read: {
         type: Sequelize.BOOLEAN
+      },
+      navigate_to: {
+        type: Sequelize.STRING,
+        allowNull: true
       },
       createdAt: {
         allowNull: false,

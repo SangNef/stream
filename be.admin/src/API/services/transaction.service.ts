@@ -3,6 +3,7 @@ import TransactionModel from "../../models/transaction";
 import { BadRequestResponse, NotFoundResponse } from "../core/ErrorResponse";
 import User from "../../models/user";
 import AdminHistoryService from "./admin.history.service";
+import { TransactionStatus, TransactionType } from "~/type/app.entities";
 
 class AdminTransactionService {
     // Admin: Lấy lịch sử giao dịch của user chỉ định.
@@ -20,23 +21,18 @@ class AdminTransactionService {
         const result = await TransactionModel.findAndCountAll({
             limit: recordsOfPage,
             offset,
-            attributes: ['id', 'implementer', 'receiver', 'type', 'value', 'content', 'createdAt'],
+            attributes: ['id', 'user_id', 'type', 'amount', 'status', 'createdAt'],
             order: [['id', 'DESC']],
-            where: {
-                [Op.or]: [
-                    { implementer: user_id },
-                    { receiver: user_id }
-                ]
-            }
+            where: { user_id }
         });
 
         let totalIn = 0, totalOut = 0;
         result.rows.map(items => {
-            if(items.implementer===user_id){
-                totalOut += parseInt(items.value);
+            if(items.type==='deposit' && items.status==='success'){
+                totalOut += parseInt(items.amount as any);
             }
-            if(items.receiver===user_id){
-                totalIn += parseInt(items.value);
+            if(items.type==='withdraw' && items.status==='success'){
+                totalIn += parseInt(items.amount as any);
             }
         });
 
@@ -52,32 +48,28 @@ class AdminTransactionService {
     }
 
     static getTransactions = async (
-        sub: number, page: number, limit: number, implementer: number | null, receiver: number, type: string,
-        is_all: boolean, is_success: boolean, is_cancel: boolean, min_value: number, max_value: number,
-        value: number, start_date: string, end_date: string
+        sub: number, page: number, limit: number, user_id: number, type: string,
+        status: string, min_value: number, max_value: number,
+        amount: number, start_date: string, end_date: string
     ) => {
         const pageCurrent = Number.isNaN(page)? 1: page;
         const recordsOfPage = Number.isNaN(limit)? 10: limit;
         const offset = (pageCurrent-1)*recordsOfPage;
 
         let condition = {} as any;
-        if(!Number.isNaN(implementer) || implementer===null) condition.implementer = implementer;
-        if(!Number.isNaN(receiver)) condition.receiver = receiver;
-        if(type) condition.type = { [Op.like]: `%${type}%` };
-        if(!is_all){
-            if(typeof(is_success)==='boolean') condition.is_success = is_success;
-            if(typeof(is_cancel)==='boolean') condition.is_cancel = is_cancel;
-        }
-        if(!Number.isNaN(value)) condition.value = value;
+        if(!Number.isNaN(user_id)) condition.user_id = user_id;
+        if(type && (type===TransactionType.deposit || type===TransactionType.withdraw)) condition.type = type;
+        if(status && (status===TransactionStatus.pending || status===TransactionStatus.success || status===TransactionStatus.cancel)) condition.status = status;
+        if(!Number.isNaN(amount)) condition.value = amount;
         if(!Number.isNaN(min_value) && !Number.isNaN(max_value)){
             if(min_value>max_value)
                 throw new BadRequestResponse('Param min/max_value in query invalid!');
 
-            condition.value = { [Op.between]: [cast(min_value, 'DECIMAL(10, 2)'), cast(max_value, 'DECIMAL(10, 2)')] };
+            condition.amount = { [Op.between]: [cast(min_value, 'DECIMAL(10, 2)'), cast(max_value, 'DECIMAL(10, 2)')] };
         } else if (!Number.isNaN(min_value) && Number.isNaN(max_value)) {
-            condition.value = { [Op.gte]: cast(min_value, 'DECIMAL(10, 2)') };
+            condition.amount = { [Op.gte]: cast(min_value, 'DECIMAL(10, 2)') };
         } else if (Number.isNaN(min_value) && !Number.isNaN(max_value)) {
-            condition.value = { [Op.lte]: cast(max_value, 'DECIMAL(10, 2)') }
+            condition.amount = { [Op.lte]: cast(max_value, 'DECIMAL(10, 2)') }
         }
         if(start_date || end_date){
             const startDate = new Date(start_date) as any;
@@ -104,17 +96,12 @@ class AdminTransactionService {
         const result = await TransactionModel.findAndCountAll({
             limit: recordsOfPage,
             offset,
-            attributes: ['id', 'implementer', 'receiver', 'type', 'is_success', 'is_cancel', 'value', 'content', 'createdAt', 'updatedAt'],
+            attributes: ['id', 'user_id', 'type', 'amount', 'status', 'createdAt', 'updatedAt'],
             include: [
                 {
                     model: User,
-                    as: 'user_imp',
-                    attributes: ['id', 'fullname', 'username', 'avatar', 'role', 'coin', 'phone'],
-                },
-                {
-                    model: User,
-                    as: 'user_rec',
-                    attributes: ['id', 'fullname', 'username', 'avatar', 'role', 'coin', 'phone'],
+                    as: 'users',
+                    attributes: ['id', 'fullname', 'username', 'avatar', 'role', 'balance', 'phone'],
                 }
             ],
             order: [['id', 'DESC']],
@@ -136,12 +123,12 @@ class AdminTransactionService {
 
         const transactionExisted = await TransactionModel.findOne({ where: {
             id: transaction_id,
-            is_success: false
+            status: 'pending'
         }});
         if(!transactionExisted) throw new NotFoundResponse('NotFound This Transaction!');
 
         const formatTransaction = {
-            is_success: true
+            status: 'success' as TransactionStatus
         }
         const result = await TransactionModel.update(formatTransaction, {
             where: { id: transaction_id }
@@ -149,26 +136,22 @@ class AdminTransactionService {
 
         await AdminHistoryService.addNew({
             admin_id: sub,
-            action: 'put',
-            model: 'transaction',
-            data_input: JSON.stringify({ transaction_id }),
-            init_value: transactionExisted as any,
-            change_value: (await TransactionModel.findByPk(transaction_id)) as any
+            action: `Phê duyệt yêu cầu giao dịch ${transaction_id}`,
         });
 
-        const infoUser = await User.findByPk(transactionExisted.receiver);
-        if(transactionExisted.type==='recharge'){
-            const updateCoin = parseInt(infoUser!.coin as any) + parseInt(transactionExisted.value);
+        const infoUser = await User.findByPk(transactionExisted.user_id);
+        if(transactionExisted.type==='deposit'){
+            const updateCoin = parseInt(infoUser!.balance as any) + parseInt(transactionExisted.amount as any);
             await User.update(
-                { coin: updateCoin },
-                { where: { id: transactionExisted.receiver } }
+                { balance: updateCoin },
+                { where: { id: transactionExisted.user_id } }
             );
         }
         if(transactionExisted.type==='withdraw'){
-            const updateCoin = parseInt(infoUser!.coin as any) - parseInt(transactionExisted.value);
+            const updateCoin = parseInt(infoUser!.balance as any) - parseInt(transactionExisted.amount as any);
             await User.update(
-                { coin: updateCoin },
-                { where: { id: transactionExisted.receiver } }
+                { balance: updateCoin },
+                { where: { id: transactionExisted.user_id } }
             );
         }
 
@@ -183,22 +166,22 @@ class AdminTransactionService {
 
         const transactionExisted = await TransactionModel.findOne({ where: {
             id: transaction_id,
-            is_success: false
+            status: 'pending'
         }});
         if(!transactionExisted) throw new NotFoundResponse('NotFound Transaction!');
 
         let formatTransaction = {}, message;
         if(is_cancel){
-            if(transactionExisted.is_cancel)
+            if(transactionExisted.status==='cancel')
                 throw new BadRequestResponse('This transaction has been cancelled!');
 
-            formatTransaction = { is_cancel }
+            formatTransaction = { status: 'cancel' }
             message = 'Cancel Transaction Successfully!'
         } else {
-            if(!transactionExisted.is_cancel)
+            if(transactionExisted.status!=='cancel')
                 throw new BadRequestResponse('This transaction has not been processed yet!');
 
-            formatTransaction = { is_cancel }
+            formatTransaction = { status: 'pending' }
             message = 'Uncancel Transaction Successfully!'
         }
 
@@ -207,11 +190,7 @@ class AdminTransactionService {
         });
         await AdminHistoryService.addNew({
             admin_id: sub,
-            action: is_cancel? 'delete': 'restore',
-            model: 'transaction',
-            data_input: JSON.stringify({ transaction_id, is_cancel }),
-            init_value: transactionExisted as any,
-            change_value: formatTransaction as any
+            action: `${is_cancel? 'Hủy': 'Khôi phục'} yêu cầu giao dịch ${transaction_id}`,
         });
 
         return { result, message };

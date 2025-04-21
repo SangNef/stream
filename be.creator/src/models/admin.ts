@@ -1,12 +1,12 @@
 import { Model, DataTypes, Optional, Sequelize } from 'sequelize';
-import { AdminModelEntity } from '~/type/app.entities';
+import { AdminModelEntity, AdminRole } from '~/type/app.entities';
 
 class Admin extends Model<AdminModelEntity, Optional<AdminModelEntity, 'id'>> implements AdminModelEntity {
   public id!: number
   public name!: string
   public email!: string
   public password!: string
-  public is_root!: boolean
+  public role!: AdminRole;
   public readonly createdAt!: Date
   public readonly updatedAt!: Date
   public readonly deletedAt!: Date | null
@@ -22,9 +22,10 @@ class Admin extends Model<AdminModelEntity, Optional<AdminModelEntity, 'id'>> im
         name: DataTypes.STRING,
         email: DataTypes.STRING,
         password: DataTypes.STRING,
-        is_root: {
-          type: DataTypes.BOOLEAN,
-          defaultValue: false
+        role: {
+          type: DataTypes.ENUM(...Object.values(AdminRole)),
+          allowNull: false,
+          defaultValue: 'admin'
         },
       },
       {

@@ -7,7 +7,7 @@ import User from '../../models/user';
 import { literal } from 'sequelize';
 import * as dotenv from "dotenv";
 import AdminHistoryService from './admin.history.service';
-import { AdminModelEntity, UserModelEntity } from '../../type/app.entities';
+import { AdminModelEntity, UserModelEntity, UserRole } from '../../type/app.entities';
 
 dotenv.config();
 
@@ -59,7 +59,7 @@ class AdminService {
             condition[Op.or].push(
                 { fullname: { [Op.like]: stringQuery}},
                 { username: { [Op.like]: stringQuery}},
-                { coin: { [Op.like]: stringQuery}}
+                { balance: { [Op.like]: stringQuery}}
             );
         }
         const today = new Date();
@@ -79,7 +79,7 @@ class AdminService {
             limit: recordsPage,
             offset: offset,
             attributes: [
-                'id', 'fullname', 'username', 'avatar', 'role', 'coin', 'createdAt', 'deletedAt',
+                'id', 'fullname', 'username', 'avatar', 'role', 'balance', 'createdAt', 'deletedAt',
                 [literal(`(SELECT COUNT(*) FROM followers WHERE followers.user_id = User.id)`), 'totalFollow']
             ],
             order: [['id', 'DESC']],
@@ -110,7 +110,7 @@ class AdminService {
             condition[Op.or].push(
                 { fullname: { [Op.like]: stringQuery}},
                 { username: { [Op.like]: stringQuery}},
-                { coin: { [Op.like]: stringQuery}}
+                { balance: { [Op.like]: stringQuery}}
             );
         }
         const today = new Date();
@@ -130,9 +130,9 @@ class AdminService {
             limit: recordsPage,
             offset: offset,
             attributes: [
-                'id', 'fullname', 'username', 'avatar', 'role', 'coin', 'createdAt', 'deletedAt',
-                [literal(`(SELECT COUNT(*) FROM followers WHERE followers.user_id = User.id)`), 'totalFollower'],
-                [literal(`(SELECT COUNT(*) FROM followers WHERE followers.follower_id = User.id)`), 'totalFollow']
+                'id', 'fullname', 'username', 'avatar', 'role', 'balance', 'createdAt', 'deletedAt',
+                [literal(`(SELECT COUNT(*) FROM followers WHERE followers.creator_id = User.id)`), 'totalFollower'],
+                [literal(`(SELECT COUNT(*) FROM followers WHERE followers.user_id = User.id)`), 'totalFollow']
             ],
             order: [['id', 'DESC']],
             where: condition,
@@ -184,8 +184,8 @@ class AdminService {
 
         let isRoot = 0 as any;
         const infoSub = await Admin.findByPk(sub);
-        if(infoSub?.is_root===true && (data.is_root && typeof(data.is_root)==='boolean')){
-            isRoot = data.is_root
+        if(infoSub?.role==='super_admin' && (data.role==='admin' || data.role==='super_admin')){
+            isRoot = data.role;
         }
 
         const hashPass = await hash(data.password);
@@ -193,7 +193,7 @@ class AdminService {
             name: data.name,
             email: data.email,
             password: hashPass,
-            is_root: isRoot || false
+            role: isRoot || 'admin'
         }
         const result = await Admin.create(formatAdmin);
 
@@ -216,9 +216,9 @@ class AdminService {
             fullname: data.fullname,
             username: data.username,
             password: await hash(data.password),
-            role: 'creator' as 'user' | 'creator',
+            role: 'creator' as UserRole,
             avatar: data.avatar || null,
-            coin: 0,
+            balance: 0,
             phone: data.phone || null
         }
         const result = await User.create(formatUser);
@@ -227,11 +227,11 @@ class AdminService {
     }
 
     static updateUserAccount = async (user_id: number, data: UserModelEntity, sub: number) => {
-        const { coin, phone, fullname, username } = data;
+        const { balance, phone, fullname, username } = data;
         
         if(
             Number.isNaN(user_id) ||
-            (coin && typeof(coin)!=='number') ||
+            (balance && typeof(balance)!=='number') ||
             (phone && (typeof(phone)!=='string' || phone.trim()==='')) ||
             (fullname && (typeof(fullname)!=='string' || fullname.trim()==='')) ||
             (username && (typeof(username)!=='string' || username.trim()===''))
@@ -248,7 +248,7 @@ class AdminService {
         const formatUser = {
             fullname: fullname ?? userExisted.fullname,
             username: username ?? userExisted.username,
-            coin: coin ?? userExisted.coin,
+            balance: balance ?? userExisted.balance,
             phone: (phone || phone===null)? phone: userExisted.phone
         }
 
@@ -257,25 +257,21 @@ class AdminService {
         });
         await AdminHistoryService.addNew({
             admin_id: sub,
-            action: 'put',
-            model: 'user',
-            data_input: JSON.stringify({ user_id, data }),
-            init_value: JSON.stringify(userExisted),
-            change_value: JSON.stringify(formatUser)
+            action: `Cập nhật tài khoản người dùng ${user_id}`,
         });
 
         return result;
     }
 
     static updateAdminAccount = async (sub: number, user_id: number, data: AdminModelEntity) => {
-        const { name, email, is_root } = data;
+        const { name, email, role } = data;
         if(
             (name && (typeof(name)!=='string' || name.trim()==='')) ||
             (email && (typeof(email)!=='string' || email.trim()==='' || !email.includes('@')))
         ) throw new BadRequestResponse('Dữ liệu truyền vào không hợp lệ!');
 
         const infoAcc = await Admin.findByPk(sub);
-        if(!infoAcc!.is_root){
+        if(infoAcc!.role==='admin'){
             const formatAdmin = {
                 name: name ?? infoAcc!.name,
                 email: email ?? infoAcc!.email,
@@ -284,11 +280,7 @@ class AdminService {
             const result = await Admin.update(formatAdmin, { where: { id: sub }});
             await AdminHistoryService.addNew({
                 admin_id: sub,
-                action: 'put',
-                model: 'admin',
-                data_input: JSON.stringify({ user_id, data }),
-                init_value: JSON.stringify(infoAcc),
-                change_value: JSON.stringify(formatAdmin)
+                action: `Cập nhật tài khoản quản trị viên ${sub}`
             });
 
             return result;
@@ -302,13 +294,13 @@ class AdminService {
                 formatAdmin = {
                     name: name ?? adminExisted.name,
                     email: email ?? adminExisted.email,
-                    is_root: is_root ?? adminExisted.is_root
+                    role: role ?? adminExisted.role
                 }
             } else {
                 formatAdmin = {
                     name: name ?? infoAcc!.name,
                     email: email ?? infoAcc!.email,
-                    is_root: is_root ?? infoAcc!.is_root
+                    role: role ?? infoAcc!.role
                 }
             }
 
@@ -316,11 +308,7 @@ class AdminService {
             const result = await Admin.update(formatAdmin, { where: { id }});
             await AdminHistoryService.addNew({
                 admin_id: sub,
-                action: 'put',
-                model: 'admin',
-                data_input: JSON.stringify({ id, data }),
-                init_value: Number.isNaN(user_id)? JSON.stringify(infoAcc): JSON.stringify(await Admin.findByPk(user_id)),
-                change_value: JSON.stringify(formatAdmin)
+                action: `Cập nhật tài khoản quản trị viên ${id}`
             });
 
             return result;
@@ -351,11 +339,7 @@ class AdminService {
 
         await AdminHistoryService.addNew({
             admin_id: sub,
-            action: isDelete? 'delete': 'restore',
-            model: 'user',
-            data_input: JSON.stringify({ id, is_delete: isDelete }),
-            init_value: (isDelete? init_data: null) as any,
-            change_value: (isDelete? null: JSON.stringify(await User.findByPk(id))) as any
+            action: `${isDelete? 'Xóa': 'Khôi phục'} tài khoản người dùng ${id}`,
         });
 
         return { result, message };
@@ -385,11 +369,7 @@ class AdminService {
 
         await AdminHistoryService.addNew({
             admin_id: sub,
-            action: is_delete? 'delete': 'restore',
-            model: 'admin',
-            data_input: JSON.stringify({ id, is_delete }),
-            init_value: (is_delete? init_data: null) as any,
-            change_value: (is_delete? null: JSON.stringify(await Admin.findByPk(id))) as any
+            action: `${is_delete? 'Xóa': 'Khôi phục'} tài khoản quản trị viên ${id}`,
         });
 
         return { result, message };

@@ -12,68 +12,81 @@ export interface ConfigModelEntity {
     value: string
 }
 
+export enum AdminRole {
+    SUPER_ADMIN = "super_admin",
+    ADMIN = "admin",
+}
 export interface AdminModelEntity {
     id?: number
     name: string
     email: string
     password: string
-    is_root: boolean
+    role: AdminRole
     createdAt?: Date
     updatedAt?: Date
     deletedAt?: Date | null
 }
 
+export enum UserRole {
+    CREATOR = "creator",
+    USER = "user",
+}
 export interface UserModelEntity {
     id?: number
     fullname: string
     username: string
     password: string
     avatar: string | null
-    role: 'user' | 'creator',
-    coin: number
+    role: UserRole,
+    balance: number
     phone: string | null
     createdAt?: Date
     updatedAt?: Date
     deletedAt?: Date | null
 }
 
+export enum TransactionType {
+    deposit = "deposit",
+    withdraw = "withdraw",
+}
+export enum TransactionStatus {
+    pending = "pending",
+    success = "success",
+    cancel = "cancel",
+}
 export interface TransactionModelEntity {
     id?: number
-    implementer: number | null
-    receiver: number
-    type: 'recharge' | 'donate' | 'withdraw'
-    is_success: boolean
-    is_cancel: boolean
-    value: string
-    content: string
+    user_id: number
+    type: TransactionType
+    amount: number
+    status: TransactionStatus
     createdAt?: Date
     updatedAt?: Date
     deletedAt?: Date | null
 }
 
-export interface AdminHistoryModelEntity {
+export interface AdminActionModelEntity {
     id?: number
     admin_id: number
-    action: 'get' | 'post' | 'put' | 'delete' | 'restore'
-    model: string
-    data_input: string
-    init_value: string | null
-    change_value: string
+    action: string
     createdAt?: Date
     updatedAt?: Date
     deletedAt?: Date | null
 }
 
+export enum StreamStatus {
+    PENDING = "pending",
+    LIVE = "live",
+    STOP = "stop",
+}
 export interface StreamModelEntity {
     id?: number
     user_id: number
     thumbnail: string
     stream_url: string
     title: string
-    start_time: Date
-    end_time: Date | null
     view: number
-    status: 'live' | 'stop' | 'delete' | 'restore' // restore không cần thiết.
+    status: StreamStatus
     createdAt?: Date
     updatedAt?: Date
     deletedAt?: Date | null
@@ -89,22 +102,19 @@ export interface CommentModelEntity {
     deletedAt?: Date | null
 }
 
-export interface FavouriteModelEntity {
-    id?: number
-    stream_id: number
-    user_id: number
-    createdAt?: Date
-    updatedAt?: Date
-    deletedAt?: Date | null
+export enum NotiModelType {
+    FOLLOW = "follow",
+    LIVE = "live",
+    TRANSACTION = "transaction",
 }
-
 export interface NotiModelEntity {
     id?: number
     user_id: number
-    type: 'live' | 'coin'
+    type: NotiModelType
     title: string
     content: string
     is_read: boolean
+    navigate_to: string
     createdAt?: Date
     updatedAt?: Date
     deletedAt?: Date | null
@@ -113,7 +123,7 @@ export interface NotiModelEntity {
 export interface FollowerModelEntity {
     id?: number
     user_id: number
-    follower_id: number
+    creator_id: number
     createdAt?: Date
     updatedAt?: Date
     deletedAt?: Date | null
@@ -124,6 +134,28 @@ export interface DonateItemEntity {
     name: string
     image: string
     price: number
+    createdAt?: Date
+    updatedAt?: Date
+    deletedAt?: Date | null
+}
+
+export interface BankModelEntity {
+    id?: number
+    user_id: number
+    bank_name: string
+    bank_account: string
+    bank_username: string
+    createdAt?: Date
+    updatedAt?: Date
+    deletedAt?: Date | null
+}
+
+export interface DonateModelEntity {
+    id?: number
+    user_id: number
+    item_id: number
+    stream_id: number
+    amount: number
     createdAt?: Date
     updatedAt?: Date
     deletedAt?: Date | null

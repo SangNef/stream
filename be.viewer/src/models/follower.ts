@@ -6,7 +6,7 @@ import { FollowerModelEntity } from "~/type/app.entities";
 class Follower extends Model<FollowerModelEntity, Optional<FollowerModelEntity, 'id'>> implements FollowerModelEntity {
     public id!: number
     public user_id!: number
-    public follower_id!: number
+    public creator_id!: number
     public readonly createdAt!: Date
     public readonly updatedAt!: Date
     public readonly deletedAt?: Date | null
@@ -27,7 +27,7 @@ class Follower extends Model<FollowerModelEntity, Optional<FollowerModelEntity, 
                         key: 'id'
                     }
                 },
-                follower_id: {
+                creator_id: {
                     type: DataTypes.INTEGER,
                     allowNull: false,
                     references: {
@@ -50,20 +50,20 @@ class Follower extends Model<FollowerModelEntity, Optional<FollowerModelEntity, 
     static associate (model: any) {
         User.hasMany(Follower, {
             foreignKey: 'user_id',
-            as: 'followers'
+            as: 'viewers'
         });
         Follower.belongsTo(User, {
             foreignKey: 'user_id',
-            as: 'users'
+            as: 'users_view'
         });
         
         User.hasMany(Follower, {
-            foreignKey: 'follower_id',
-            as: 'followers_fl'
+            foreignKey: 'creator_id',
+            as: 'creators'
         });
         Follower.belongsTo(User, {
-            foreignKey: 'follower_id',
-            as: 'users_fl'
+            foreignKey: 'creator_id',
+            as: 'users_creator'
         });
         
         Stream.hasMany(Follower, {

@@ -1,5 +1,6 @@
 import Follower from "~/models/follower";
 import Notification from "../../models/notification";
+import { NotiModelType } from "~/type/app.entities";
 
 // Tạo thông báo loại live.
 export const createNotiLive = async (creatorId: number, dataStream: any) => {
@@ -15,11 +16,12 @@ export const createNotiLive = async (creatorId: number, dataStream: any) => {
         let formatResult = [];
         for(let i=0; i<allFollower.length; i++){
             const formatNotiLive = {
-                user_id: allFollower[i].follower_id,
-                type: 'live' as 'live' | 'coin',
+                user_id: allFollower[i].user_id,
+                type: 'live' as NotiModelType,
                 title: dataStream.title,
                 content: dataStream.content,
-                is_read: false
+                is_read: false,
+                navigate_to: null as any
             }
             const query = await Notification.create(formatNotiLive);
             formatResult.push({

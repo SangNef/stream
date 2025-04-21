@@ -20,10 +20,8 @@ class UserTransactionController {
         const sub = req.user?.sub;
         const type = req.body.type;
         const value = parseInt(req.body.value);
-        const receiver = parseInt(req.body.receiver);
-        const content = req.body.content;
 
-        const result = await UserTransactionService.addNew(sub, type, value, content, receiver);
+        const result = await UserTransactionService.addNew(sub, type, value);
         return new CREATED({
             metadata: result,
             message: 'Your Request Is Pending Approval!'

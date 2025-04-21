@@ -1,21 +1,17 @@
 import { Model, DataTypes, Optional, Sequelize } from "sequelize";
 import Admin from "./admin";
-import { AdminHistoryModelEntity } from "~/type/app.entities";
+import { AdminActionModelEntity } from "~/type/app.entities";
 
-class AdminHistory extends Model<AdminHistoryModelEntity, Optional<AdminHistoryModelEntity, 'id'>> implements AdminHistoryModelEntity {
+class AdminAction extends Model<AdminActionModelEntity, Optional<AdminActionModelEntity, 'id'>> implements AdminActionModelEntity {
     public id!: number
     public admin_id!: number
-    public action!: 'get' | 'post' | 'put' | 'delete' | 'restore'
-    public model!: string
-    public data_input!: string
-    public init_value!: string | null
-    public change_value!: string
+    public action!: string
     public readonly createdAt!: Date
     public readonly updatedAt!: Date
     public readonly deletedAt?: Date
 
     static initModel(sequelize: Sequelize) {
-        AdminHistory.init(
+        AdminAction.init(
             {
                 id: {
                     type: DataTypes.INTEGER,
@@ -32,23 +28,7 @@ class AdminHistory extends Model<AdminHistoryModelEntity, Optional<AdminHistoryM
                     onUpdate: 'CASCADE'
                 },
                 action: {
-                    type: DataTypes.ENUM('get', 'post', 'put', 'delete', 'restore'),
-                    allowNull: false
-                },
-                model: {
                     type: DataTypes.STRING,
-                    allowNull: false
-                },
-                data_input: {
-                    type: DataTypes.TEXT,
-                    allowNull: true
-                },
-                init_value: {
-                    type: DataTypes.TEXT,
-                    allowNull: true
-                },
-                change_value: {
-                    type: DataTypes.TEXT,
                     allowNull: false
                 }
             },
@@ -60,19 +40,19 @@ class AdminHistory extends Model<AdminHistoryModelEntity, Optional<AdminHistoryM
             }
         );
 
-        return AdminHistory;
+        return AdminAction;
     }
 
     static associate(model: any) {
-        Admin.hasMany(AdminHistory, {
+        Admin.hasMany(AdminAction, {
             foreignKey: 'admin_id',
-            as: 'adminhistories'
+            as: 'adminactions'
         });
-        AdminHistory.belongsTo(Admin, {
+        AdminAction.belongsTo(Admin, {
             foreignKey: 'admin_id',
             as: 'admins'
         });
     }
 }
 
-export default AdminHistory;
+export default AdminAction;

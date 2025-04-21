@@ -24,8 +24,8 @@ class AuthService {
   static getProfileBySub = async (sub: number) => {
     const result = await User.findOne({
       attributes: [
-        'id', 'fullname', 'username', 'avatar', 'role', 'coin',
-        [literal(`(SELECT COUNT(*) FROM followers WHERE followers.follower_id = User.id)`), 'totalFollowed']
+        'id', 'fullname', 'username', 'avatar', 'role', 'balance',
+        [literal(`(SELECT COUNT(*) FROM followers WHERE followers.user_id = User.id)`), 'totalFollowed']
       ],
       where: { id: sub}
     });

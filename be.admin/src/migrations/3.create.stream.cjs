@@ -27,19 +27,13 @@ module.exports = {
       title: {
         type: Sequelize.STRING
       },
-      start_time: {
-        type: Sequelize.DATE
-      },
-      end_time: {
-        type: Sequelize.DATE
-      },
       view: {
         type: Sequelize.INTEGER,
         allowNull: false,
         defaultValue: 0
       },
       status: {
-        type: Sequelize.ENUM('live', 'stop', 'delete', 'restore')
+        type: Sequelize.ENUM('pending', 'live', 'stop')
       },
       createdAt: {
         allowNull: false,

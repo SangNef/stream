@@ -8,9 +8,9 @@
     "migrate": "dotenv -e .env.development npx sequelize-cli db:migrate --migrations-path src/migrations --config src/config/config.json",
     "migrate:production": "dotenv -e .env.production npx sequelize-cli db:migrate --migrations-path src/migrations --config src/config/config.json",
     "seed": "dotenv -e .env.development npx sequelize-cli db:seed:all --seeders-path src/seeders --config src/config/config.json",
-    "dev": "concurrently \"D:/Redis/redis-server.exe\" \"nodemon\"",
+    "dev": "nodemon",
     "seed:production": "dotenv -e .env.production npx sequelize-cli db:seed:all --seeders-path src/seeders --config src/config/config.json",
-    "start": "concurrently \"D:/Redis/redis-server.exe\" \"dotenv -e .env.development nodemon src/API/index.ts\"",
+    "start": "concurrently \"D:/Redis/redis-server.exe\" \"nodemon\"",
     "production": "dotenv -e .env.production node src/server.js"
   },
   "nodemonConfig": {

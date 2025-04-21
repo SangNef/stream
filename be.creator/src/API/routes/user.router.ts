@@ -1,5 +1,5 @@
 import express from "express";
-import { AuthController, UserAccountController, UserCommentController, UserDonateItemController, UserFavouriteController, UserFollowerController, UserStreamController, UserTransactionController } from "../controllers";
+import { AuthController, UserAccountController, UserBankController, UserDonateController, UserDonateItemController, UserFollowerController, UserStreamController, UserTransactionController } from "../controllers";
 import asyncHandler from "../helpers/asyncHandler";
 import AuthMiddleWare from "../middlewares/user.middleware";
 
@@ -32,22 +32,24 @@ router.put('/stream/update/:streamid', asyncHandler(UserStreamController.updateS
 router.get('/donate-item/get-list', asyncHandler(UserDonateItemController.getList));
 
 // Comment.
-router.get('/comment/get-by/:stream_id', asyncHandler(UserCommentController.getComments));
+// router.get('/comment/get-by/:stream_id', asyncHandler(UserCommentController.getComments));
 
 //Follower
 router.get('/follower/get-info-list-stream', asyncHandler(UserFollowerController.getListStreamInfo as any));
 router.get('/follower/get-info-list-creator', asyncHandler(UserFollowerController.getInfoListCreatorFollowed as any));
-router.post('/follower/add-new-follow/:user_id', asyncHandler(UserFollowerController.addNewFollow as any));
-router.delete('/follower/unfollow/:follower_id', asyncHandler(UserFollowerController.unfollow as any));
+router.post('/follower/add-new-follow/:creator_id', asyncHandler(UserFollowerController.addNewFollow as any));
+router.delete('/follower/unfollow/:creator_id', asyncHandler(UserFollowerController.unfollow as any));
 
-// Transachtion.
-router.get('/transaction/user/donated', asyncHandler(UserTransactionController.getUsersDonated as any));
+// Transaction.
 router.get('/transacton/history', asyncHandler(UserTransactionController.getHistoryTransaction as any));
 router.post('/transaction/add', asyncHandler(UserTransactionController.addNew as any));
 
-//Favourite
-router.get('/stream-favourite/get-list-follow', asyncHandler(UserFavouriteController.getListStreamFavourite as any));
-router.post('/favourite/add-new', asyncHandler(UserFavouriteController.addNew as any));
-router.delete('/favourite/unfavorite/:id', asyncHandler(UserFavouriteController.unfavorite as any));
+// Donate.
+router.get('/donate/get-list', asyncHandler(UserDonateController.getListInfoUserDonated as any));
+
+// Bank
+router.get('/bank/get-list', asyncHandler(UserBankController.getBanks as any))
+router.post('/bank/add', asyncHandler(UserBankController.addNew as any));
+router.delete('/bank/delete/:bank_id', asyncHandler(UserBankController.delBank as any));
 
 export default router;
