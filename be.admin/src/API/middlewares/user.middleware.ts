@@ -8,7 +8,7 @@ import { ReqEntity } from "../../type/app.entities";
 import Admin from "~/models/admin";
 
 class AuthMiddleWare {
-  static checkAuth(req: ReqEntity, res: Response, next: NextFunction) {
+  static async checkAuth (req: ReqEntity, res: Response, next: NextFunction) {
     let token = req?.headers?.authorization;
     if (!token) throw new Unauthorized("Unauthorized");
     if (token.startsWith("Bearer "))
@@ -17,7 +17,7 @@ class AuthMiddleWare {
     req.user = payload as any;
     next();
   }
-  static checkTokenExpired(req: Request, res: Response, next: NextFunction) {
+  static async checkTokenExpired(req: Request, res: Response, next: NextFunction) {
     const Authorization = req?.header("Authorization");
     const token = Authorization?.replace("Bearer ", "");
     console.log(token)
@@ -33,7 +33,7 @@ class AuthMiddleWare {
     });
   }
 
-  static isRoleAdmin(req: ReqEntity, res: Response, next: NextFunction) {
+  static async isRoleAdmin(req: ReqEntity, res: Response, next: NextFunction) {
     const role = req.user?.role;
     if(role!=='admin' || !role) {
       res.status(400).json({ message: "Account Enough Rights!"});
@@ -42,7 +42,7 @@ class AuthMiddleWare {
     next();
   }
 
-  static isRoleUser(req: ReqEntity, res: Response, next: NextFunction) {
+  static async isRoleUser(req: ReqEntity, res: Response, next: NextFunction) {
     const role = req.user?.role;
     if(role!=='user' || !role){
       res.status(400).json({ message: 'Account Enough Rights!'});

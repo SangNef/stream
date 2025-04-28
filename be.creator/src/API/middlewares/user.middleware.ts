@@ -6,7 +6,7 @@ import { ReqEntity } from "~/type/app.entities";
 import { NextFunction, Response } from "express";
 
 class AuthMiddleWare {
-  static checkAuth(req: ReqEntity, res: Response, next: NextFunction) {
+  static async checkAuth(req: ReqEntity, res: Response, next: NextFunction) {
     let token = req?.headers?.authorization;
     if (!token) throw new Unauthorized("Unauthorized");
     if (token.startsWith("Bearer "))
@@ -15,7 +15,7 @@ class AuthMiddleWare {
     req.user = payload as any;
     next();
   }
-  static checkTokenExpired(req: ReqEntity, res: Response, next: NextFunction) {
+  static async checkTokenExpired(req: ReqEntity, res: Response, next: NextFunction) {
     const Authorization = req?.header("Authorization");
     const token = Authorization?.replace("Bearer ", "");
     console.log(token)
@@ -31,7 +31,7 @@ class AuthMiddleWare {
     });
   }
   
-  static isRoleCreator(req: ReqEntity, res: Response, next: NextFunction) {
+  static async isRoleCreator(req: ReqEntity, res: Response, next: NextFunction) {
     const role = req.user?.role;
     if(role!=='creator'){
       throw res.status(400).json({ message: 'Account Enough Rights!'});

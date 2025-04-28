@@ -13,16 +13,6 @@ class AuthController {
     }).send(res);
   }
 
-  // static sendCodeToMail = async (req, res) => {
-  //   const sub = req.user.sub;
-  //   const role = req.user.role;
-  //   const result = await AuthService.sendCodeToMail(sub, role);
-  //   return new OK({
-  //     metadata: result,
-  //     message: "Sent Code To Your Email Successfully!"
-  //   }).send(res);
-  // }
-
   static uploadNewImage = async (req: Request, res: Response) => {
     const files = req.files;
     const result = await AuthService.uploadImages(files);

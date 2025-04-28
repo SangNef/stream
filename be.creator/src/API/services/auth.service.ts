@@ -75,46 +75,6 @@ class AuthService {
     return result;
   }
 
-  // static sendCodeToMail = async (sub, role) => {
-  //   let infoAcc;
-  //   if(role!=='admin'){
-  //     infoAcc = await User.findByPk(sub);
-  //   } else {
-  //     infoAcc = await Admin.findByPk(sub);
-  //   }
-    
-  //   if(!infoAcc.email) throw new BadRequestResponse('Account Not Email!')
-
-  //   const transporter = nodemailer.createTransport({
-  //     service: 'gmail',
-  //     auth: {
-  //       user: process.env.MAIL_EMAILADDRESS,
-  //       pass: process.env.MAIL_PASSWORD
-  //     }
-  //   });
-  //   const code = crypto.randomInt(100000, 999999).toString();
-  //   cache.set(infoAcc.email, code);
-
-  //   const formatEmail = {
-  //     from: process.env.MAIL_EMAILADDRESS,
-  //     to: infoAcc.email,
-  //     subject: '[Livestream Aapp] - Mã xác nhận tài khoản',
-  //     text: `<span>Mã xác nhận của bạn là: <b>${code}</b>. Mã sẽ hết hạn sau 2 phút.</span>`
-  //   }
-
-  //   await transporter.sendMail(formatEmail);
-  //   console.log(`Đã gửi mã xác nhận đến ${infoAcc.email}`);
-  //   return new OK({ message: 'Verify Code Sent To Your Email!'});
-  // }
-
-  // static verifyCode = (emailTo, code) => {
-  //   const checkCode = cache.get(emailTo);
-  //   if(checkCode && checkCode===code){
-  //     return true;
-  //   }
-  //   return false;
-  // }
-
   // Kiểm tra mật khẩu mới có khác với mật khẩu cũ.
   static isNewPassword = async (sub: number, newPass: string) => {
     const infoAcc = await User.findByPk(sub);
