@@ -12,7 +12,7 @@ class UserStreamController {
         const result = await UserStreamService.getStreamsHot(page, limit, is_streaming);
         return new OK({
             metadata: result,
-            message: "Get list of successfull stream hot!"
+            message: "Lấy danh sách stream HOT thành công!"
         }).send(res);
     }
 
@@ -21,7 +21,7 @@ class UserStreamController {
         const result = await UserStreamService.getCreatorHot(date);
         return new OK({
             metadata: result,
-            message: "Get list of successful creator hot!"
+            message: "Lấy danh sách nhà sáng tạo nội dung HOT thành công!"
         }).send(res);
     }
 
@@ -33,7 +33,7 @@ class UserStreamController {
         const result = await UserStreamService.getAllStreamBySub(parseInt(creatorid), page, limit);
         return new OK({
             metadata: result,
-            message: "Get list of successful your stream!"
+            message: "Lấy danh sách stream của bạn thành công!"
         }).send(res);
     }
 
@@ -42,7 +42,7 @@ class UserStreamController {
         const result = await UserStreamService.getStreamUrlByCreatorId(parseInt(creator_id));
         return new OK({
             metadata: result as any,
-            message: "Get Stream Url Successfully!"
+            message: "Lấy đường dẫn livestream thành công!"
         }).send(res);
     }
 
@@ -53,7 +53,7 @@ class UserStreamController {
         const result = await UserStreamService.getListStreamOfCreatorFollowed(sub, page, limit);
         return new OK({
             metadata: result,
-            message: "Get List Stream Of Creator Followed Successfully!"
+            message: "Lấy danh sách livestream của nhà sáng tạo nội dung đã theo dõi thành công!"
         }).send(res);
     }
 }

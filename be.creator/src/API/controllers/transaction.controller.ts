@@ -25,7 +25,7 @@ class UserTransactionController {
         const result = await UserTransactionService.addNew(sub, type, value, content);
         return new CREATED({
             metadata: result,
-            message: 'Your Request Is Pending Approval!'
+            message: 'Yêu cầu giao dịch của bạn đang chờ được phê duyệt!'
         }).send(res);
     }
 }

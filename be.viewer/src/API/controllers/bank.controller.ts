@@ -13,7 +13,7 @@ class UserBankController {
         const result = await UserBankService.getBanks(sub, page, limit, bank_name);
         return new OK({
             metadata: result,
-            message: 'Get Banks Successfully!'
+            message: 'Lấy danh sách tài khoản ngân hàng thành công!'
         }).send(res);
     }
 
@@ -28,7 +28,7 @@ class UserBankController {
         const result = await UserBankService.addNew(data);
         return new CREATED({
             metadata: result,
-            message: 'Add New Info Bank Successfully!'
+            message: 'Thêm mới tài khoản ngân hàng thành công!'
         }).send(res);
     }
 
@@ -38,7 +38,7 @@ class UserBankController {
         const result = await UserBankService.delBank(sub, bank_id);
         return new OK({
             metadata: result,
-            message: 'Deleted Bank Successfully!'
+            message: 'Xóa tài khoản ngân hàng thành công!'
         }).send(res);
     }
 }

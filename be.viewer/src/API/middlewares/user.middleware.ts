@@ -8,7 +8,7 @@ import { ReqEntity } from "../../type/app.entities";
 class AuthMiddleWare {
   static async checkAuth(req: ReqEntity, res: Response, next: NextFunction) {
     let token = req?.headers?.authorization;
-    if (!token) throw new Unauthorized("Unauthorized");
+    if (!token) throw new Unauthorized("Không thể thực hiện");
     if (token.startsWith("Bearer "))
       token = token.slice(7, token.length).trimLeft();
     const payload = jwtVerifyAccessToken(token, process.env.JWT_SECRET_ACCESSTOKEN!);
@@ -19,14 +19,14 @@ class AuthMiddleWare {
     const Authorization = req?.header("Authorization");
     const token = Authorization?.replace("Bearer ", "");
     console.log(token)
-    if (!token) throw new Unauthorized("Unauthorized");
+    if (!token) throw new Unauthorized("Không thể thực hiện");
     jwt.verify(token, process.env.JWT_SECRET_ACCESSTOKEN!, (err, user) => {
       if (err && err.message === "jwt expired") {
         next();
       } else if (user) {
         next();
       } else {
-        throw new Unauthorized("Unauthorized");
+        throw new Unauthorized("Không thể thực hiện");
       }
     });
   }
@@ -34,8 +34,8 @@ class AuthMiddleWare {
   static async isRoleUser(req: ReqEntity, res: Response, next: NextFunction) {
     const role = req.user?.role;
     if(role!=='user'){
-      res.status(400).json({ message: 'Account Enough Rights!'});
-      throw new Unauthorized('Unauthorized');
+      res.status(400).json({ message: 'Tài khoản không đủ quyền!'});
+      throw new Unauthorized('Không thể thực hiện');
     }
     next();
   }

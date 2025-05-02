@@ -8,13 +8,13 @@ import { FollowerModelEntity } from '~/type/app.entities';
 class UserFollowerServie {
     // Có thể lấy stream_url theo creator đã theo dõi
     static getStreamInfoOfCreatorFollowed = async (user_id: number) => {
-        if(Number.isNaN(user_id)) throw new BadRequestResponse('ParamInput Invalid!');
+        if(Number.isNaN(user_id)) throw new BadRequestResponse('Tham số truyền vào không hợp lệ!');
 
         const result = await Follower.findAll({
             attributes: [],
             include: {
                 model: User,
-                as: 'users',
+                as: 'users_creator',
                 attributes: ['id', 'fullname', 'username', 'avatar', 'role'],
                 include: [{
                     model: Stream,
@@ -51,10 +51,10 @@ class UserFollowerServie {
                             SELECT
                                 CASE
                                     WHEN COUNT(*) = 0 THEN false
-                                    WHEN end_time IS NULL THEN true
+                                    WHEN status = 'live' THEN true
                                     ELSE false
                                 END
-                            FROM streams a WHERE a.user_id = users.id ORDER BY a.createdAt DESC LIMIT 1
+                            FROM streams a WHERE a.user_id = users_creator.id ORDER BY a.createdAt DESC LIMIT 1
                         )`),
                         'is_live'
                     ]
@@ -74,17 +74,17 @@ class UserFollowerServie {
 
     static followCreator = async (data: Partial<FollowerModelEntity>) => {
         if(Number.isNaN(data.creator_id) || Number.isNaN(data.creator_id))
-            throw new BadRequestResponse('DataInput Invalid!');
+            throw new BadRequestResponse('Dữ liệu truyền vào không hợp lệ!');
 
         const creatorExisted = await User.findByPk(data.creator_id);
         if(!creatorExisted || creatorExisted.role!=='creator')
-            throw new NotFoundResponse('Creator Not Exist!');
+            throw new NotFoundResponse('Nhà sáng tạo nội dung không tồn tại!');
         
         const checkFollowed = await Follower.findOne({ where: {
             user_id: data.user_id,
             creator_id: data.creator_id
         }});
-        if(checkFollowed) throw new BadRequestResponse('You Followed This Creator!');
+        if(checkFollowed) throw new BadRequestResponse('Bạn đã theo dõi nhà sáng tạo nội dung này!');
 
         const formatFollower = {
             user_id: data.user_id!,
@@ -97,13 +97,13 @@ class UserFollowerServie {
 
     static unfollowCreator = async (data: Partial<FollowerModelEntity>) => {
         if(Number.isNaN(data.creator_id) || Number.isNaN(data.creator_id))
-            throw new BadRequestResponse('ParamInput Invalid!');
+            throw new BadRequestResponse('Tham số truyền vào không hợp lệ!');
 
         const followedCreator = await Follower.findOne({ where: {
             user_id: data.user_id,
             creator_id: data.creator_id
         }});
-        if(!followedCreator) throw new NotFoundResponse('Don\'t follow this creator yet!');
+        if(!followedCreator) throw new NotFoundResponse('Chưa theo dõi nhà sáng tạo nội dung này!');
 
         const result = await Follower.destroy({
             where: { id: followedCreator.id}

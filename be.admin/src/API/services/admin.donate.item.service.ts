@@ -50,7 +50,7 @@ class AdminDonateItemService {
             (!data.name || data.name.trim()==='' || typeof(data.name)!=='string') ||
             (!data.image || data.image.trim()==='' || typeof(data.image)!=='string') ||
             (Number.isNaN(data.price))
-        ) throw new BadRequestResponse('DataInput Invalid!');
+        ) throw new BadRequestResponse('Dữ liệu thêm mới không hợp lệ!');
 
         const formatDonateItem = {
             name: data.name!,
@@ -67,13 +67,13 @@ class AdminDonateItemService {
             (data.name && (data.name.trim()==='' || typeof(data.name)!=='string')) ||
             (data.image && (data.image.trim()==='' || typeof(data.image)!=='string')) ||
             (data.price && (Number.isNaN(data.price) || data.price <= 1000))
-        ) throw new BadRequestResponse('DataInput Invalid!');
+        ) throw new BadRequestResponse('Dữ liệu cập nhật không hợp lệ!');
 
         const itemExisted = await DonateItemModel.findOne({
             where: { id },
             paranoid: false
         });
-        if(!itemExisted) throw new NotFoundResponse('Donate Item Not Exist!');
+        if(!itemExisted) throw new NotFoundResponse('Vật phẩm quà tặng không tồn tại!');
 
         const formatDonateItem = {
             name: data.name || itemExisted.name,
@@ -88,24 +88,24 @@ class AdminDonateItemService {
     }
 
     static delOrRestore = async (id: number, is_delete: boolean) => {
-        if(Number.isNaN(id)) throw new BadRequestResponse('ParamInput Invalid!');
+        if(Number.isNaN(id)) throw new BadRequestResponse('ID vật phẩm không hợp lệ!');
 
         let result = 0 as any, message = '';
         if(is_delete){
             const itemExisted = await DonateItemModel.findByPk(id);
-            if(!itemExisted) throw new NotFoundResponse('Donate Item Not Exist!')
+            if(!itemExisted) throw new NotFoundResponse('Vật phẩm quà tặng không tồn tại!')
 
             result = await DonateItemModel.destroy({ where: { id }});
-            message = 'Deleted Donate Item Successfully!';
+            message = 'Xóa vật phẩm quà tặng thành công!';
         } else {
             const itemDeleted = await DonateItemModel.findOne({
                 where: { id, deletedAt: {[Op.ne]: null} },
                 paranoid: false
             });
-            if(!itemDeleted) throw new NotFoundResponse('Donate Item Havenot Been Deleted!');
+            if(!itemDeleted) throw new NotFoundResponse('Vật phẩm này chưa bị xóa. Không thể khôi phục!');
 
             result = await DonateItemModel.restore({ where: { id }});
-            message = 'Restored Donate Item Successfully!';
+            message = 'Khôi phục vật phẩm quà tặng thành công!';
         }
 
         return { result, message };

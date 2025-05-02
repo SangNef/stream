@@ -34,14 +34,14 @@ class UserBankService {
             (!data.bank_name || data.bank_name.trim()==='' || typeof(data.bank_name)!=='string') ||
             (!data.bank_account || data.bank_account.trim()==='' || typeof(data.bank_account)!=='string') ||
             (!data.bank_username || data.bank_username.trim()==='' || typeof(data.bank_username)!=='string')
-        ) throw new BadRequestResponse('DataInput Invalid!');
+        ) throw new BadRequestResponse('Dữ liệu truyền vào không hợp lệ!');
 
         const bankExisted = await Bank.findOne({ where: {
             user_id: data.user_id!,
             bank_name: data.bank_name,
             bank_account: data.bank_account
         }});
-        if(bankExisted) throw new BadRequestResponse('Bank information has been used!');
+        if(bankExisted) throw new BadRequestResponse('Thông tin tài khoản ngân hàng đã được sử dụng!');
 
         const formatBank = {
             user_id: data.user_id!,
@@ -54,12 +54,12 @@ class UserBankService {
     }
 
     static delBank = async (sub: number, bank_id: number) => {
-        if(Number.isNaN(bank_id)) throw new BadRequestResponse('ParamInput Invalid!');
+        if(Number.isNaN(bank_id)) throw new BadRequestResponse('Tham số truyền vào không hợp lệ!');
 
         const bankExisted = await Bank.findOne({ where: {
             id: bank_id, user_id: sub
         }});
-        if(!bankExisted) throw new NotFoundResponse('NotFound Bank!');
+        if(!bankExisted) throw new NotFoundResponse('Không tìm thấy tài khoản ngân hàng!');
 
         const result = await Bank.destroy({ where: { id: bank_id } });
         return result;

@@ -43,7 +43,7 @@ class UserStreamService {
     // + 1 tháng (date=month): quy ước bằng 30 ngày.
     static getCreatorHot = async (date: string) => {
         if(!date || (date!=='week' && date!=='month'))
-            throw new BadRequestResponse('ParamInput Invalid!');
+            throw new BadRequestResponse('Tham số truyền vào không hợp lệ!');
 
         const today = new Date();
         const startDay = new Date();
@@ -84,7 +84,7 @@ class UserStreamService {
     // Nếu là creator => Lấy tất cả stream của bản thân 
     // Nếu là user => Lấy tất cả stream theo creator tìm kiếm.
     static getAllStreamBySub = async (creatorid: number, page: number, limit: number) => {
-        if (Number.isNaN(creatorid)) throw new BadRequestResponse('ParamInput Invalid!');
+        if (Number.isNaN(creatorid)) throw new BadRequestResponse('Tham số truyền vào không hợp lệ!');
 
         const currentPage = Number.isNaN(page) ? 1 : page;
         const limitRecords = (Number.isNaN(limit)) ? 10 : limit;
@@ -99,7 +99,7 @@ class UserStreamService {
             attributes: [
                 'id', 'thumbnail', 'stream_url', 'status',
                 'title', 'view', 'createdAt', 'updatedAt', 'deletedAt',
-                [literal(`TIMESTAMPDIFF(SECOND, createdAt, updatedAt)`), 'timeLive'],
+                [literal(`TIMESTAMPDIFF(SECOND, \`Stream\`.createdAt, \`Stream\`.updatedAt)`), 'timeLive']
             ],
             include: [{
                 model: User,
@@ -121,11 +121,11 @@ class UserStreamService {
 
     // Trả về stream_url mới nhất theo creator_id nhập vào.
     static getStreamUrlByCreatorId = async (creator_id: number) => {
-        if (Number.isNaN(creator_id)) throw new BadRequestResponse('Creator ID Invalid!');
+        if (Number.isNaN(creator_id)) throw new BadRequestResponse('ID nhà sáng tạo nội dung không hợp lệ!');
 
         const creatorExisted = await User.findByPk(creator_id);
         if (!creatorExisted || creatorExisted.role !== 'creator')
-            throw new NotFoundResponse('NotFound Creator Match ID!');
+            throw new NotFoundResponse('Nhà sáng tạo nội dung không tồn tại!');
 
         const result = await Stream.findOne({
             attributes: ['id', 'stream_url'],
@@ -154,15 +154,16 @@ class UserStreamService {
             attributes: ['id'],
             include: {
                 model: User,
-                as: 'users',
+                as: 'users_creator',
                 attributes: ['id', 'fullname', 'username', 'avatar'],
                 include: [{
                     model: Stream,
                     as: 'streams',
                     attributes: [
                         'id', 'thumbnail', 'stream_url', 'title', 'status', 'view', 'createdAt', 'updatedAt',
-                        [literal(`TIMESTAMPDIFF(SECOND, createdAt, updatedAt)`), 'timeLive']
-                    ]
+                        [literal(`TIMESTAMPDIFF(SECOND, \`users_creator\`.createdAt, \`users_creator\`.updatedAt)`), 'timeLive']
+                    ],
+                    order: [['id', 'DESC']]
                 }]
             },
             where: { user_id: sub }

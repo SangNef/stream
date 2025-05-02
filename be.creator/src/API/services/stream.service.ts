@@ -50,7 +50,7 @@ class UserStreamService {
     // + 1 tháng (date=month): quy ước bằng 30 ngày.
     static getCreatorHot = async (date: string) => {
         if(!date || (date!=='week' && date!=='month'))
-            throw new BadRequestResponse('ParamInput Invalid!');
+            throw new BadRequestResponse('Tham số truyền vào không hợp lệ!');
 
         const today = new Date();
         const startDay = new Date();
@@ -130,18 +130,18 @@ class UserStreamService {
             where: { id: id }
         });
 
-        if (!result) throw new NotFoundResponse('NotFound Record Match ID!');
+        if (!result) throw new NotFoundResponse('Không tìm thấy bản ghi phù hợp với ID!');
 
         return result;
     }
 
     // Trả về stream_url mới nhất theo creator_id nhập vào.
     static getStreamUrlByCreatorId = async (creator_id: number) => {
-        if (Number.isNaN(creator_id)) throw new BadRequestResponse('Creator ID Invalid!');
+        if (Number.isNaN(creator_id)) throw new BadRequestResponse('ID nhà sáng tạo nội dung không hợp lệ!');
 
         const creatorExisted = await User.findByPk(creator_id);
         if (!creatorExisted || creatorExisted.role !== 'creator')
-            throw new NotFoundResponse('NotFound Creator Match ID!');
+            throw new NotFoundResponse('Không tìm thấy nhà sáng tạo nội dung phù hợp với ID!');
 
         const result = await Stream.findOne({
             attributes: ['id', 'stream_url'],
@@ -177,7 +177,7 @@ class UserStreamService {
                     as: 'streams',
                     attributes: [
                         'id', 'thumbnail', 'stream_url', 'title', 'status', 'view', 'createdAt', 'updatedAt',
-                        [literal(`TIMESTAMPDIFF(SECOND, createdAt, updatedAt)`), 'timeLive']
+                        [literal(`TIMESTAMPDIFF(SECOND, \`users_creator->streams\`.createdAt, \`users_creator->streams\`.updatedAt)`), 'timeLive']
                     ]
                 }]
             },

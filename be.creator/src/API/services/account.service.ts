@@ -7,7 +7,6 @@ import * as dotenv from "dotenv";
 import { UserModelEntity, UserRole } from '~/type/app.entities';
 
 dotenv.config();
-const url_img = process.env.URL_IMG_IN_DB;
 
 class UserAccountService {
     //Lấy ra danh sách tất cả tài khoản người dùng
@@ -71,15 +70,15 @@ class UserAccountService {
     }
 
     static signin = async (data: Partial<UserModelEntity>) => {
-        if(!data.username || !data.password) throw new BadRequestResponse('DataInput Invalid!');
+        if(!data.username || !data.password) throw new BadRequestResponse('Dữ liệu truyền vào không hợp lệ!');
 
         const userExisted = await User.findOne({ where: {
             username: data.username
         }});
-        if(!userExisted) throw new NotFoundResponse('NotFound Account Match DataInput!');
+        if(!userExisted) throw new NotFoundResponse('Tài khoản không tồn tại!');
 
         if(!await(compare(data.password, userExisted.password)))
-            throw new BadRequestResponse('Login Fail Because InfoInput Incorrect!');
+            throw new BadRequestResponse('Thông tin đăng nhập không chính xác!');
 
         const payload = { sub: userExisted.id, role: userExisted.role }
 
@@ -91,12 +90,12 @@ class UserAccountService {
 
     static signup = async (data: Partial<UserModelEntity>) => {
         if(!data.username || !data.password)
-            throw new BadRequestResponse('DataInput Invalid!');
+            throw new BadRequestResponse('Dữ liệu truyền vào không hợp lệ!');
 
         const userExisted = await User.findOne({ where: {
             username: data.username
         }});
-        if(userExisted) throw new BadRequestResponse('Account Name Existed!');
+        if(userExisted) throw new BadRequestResponse('Tên tài khoản đã tồn tại!');
 
         const formatUser = {
             fullname: data.fullname!,
@@ -130,7 +129,7 @@ class UserAccountService {
 
     // Chỉ xóa mềm (minh họa :v)
     static deleteAccount = async (sub: number) => {
-        if(Number.isNaN(sub)) throw new BadRequestResponse('DataInput Invalid!');
+        if(Number.isNaN(sub)) throw new BadRequestResponse('Dữ liệu truyền vào không hợp lệ!');
 
         const result = await User.destroy({ where: { id: sub}});
         return result;
@@ -141,7 +140,7 @@ class UserAccountService {
             attributes: ['id', 'fullname', 'username', 'role', 'avatar', 'balance'],
         });
     
-        if (!user) throw new NotFoundResponse('User not found!');
+        if (!user) throw new NotFoundResponse('Người dùng không tồn tại!');
         return user;
     };    
 }

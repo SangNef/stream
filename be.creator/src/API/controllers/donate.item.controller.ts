@@ -18,7 +18,7 @@ class UserDonateItemController {
         const result = await UserDonateItemService.getList(page, limit, filter, is_paranoid);
         return new OK({
             metadata: result,
-            message: 'Get Donate Items Successfully!'
+            message: 'Lấy danh sách vật phẩm quà tặng thành công!'
         }).send(res);
     }
 }

@@ -44,7 +44,7 @@ const appMain = async () => {
   app.use(cookieParser());
 
   // Show routes called in console during development
-  if (config.NodeEnv === NodeEnvs.Dev.valueOf()) {
+  if (config.NodeEnv || "development" === NodeEnvs.Dev.valueOf()) {
     app.use(morgan("dev"));
   }
 

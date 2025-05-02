@@ -1,20 +1,18 @@
-import "./pre-start"; // Must be the first import
+import "./pre-start"; 
 import logger from "jet-logger";
+import config from "~/config";
+import server from "./server";
+import { WebSocketServer } from 'ws';
+import { createServer } from 'http';
+import { handleWSConnection } from "~/websocket/wsHandler";
+import 'module-alias/register';
+import "~/type/app.entities";
 
-import http from "http";
-import appMain from "./server";
-import WebSocket_Server from "../websocket/websocket";
-import config from "../config";
+server().then((app) => {
+    const httpServer = createServer(app);
+    const wss = new WebSocketServer({ server: httpServer });
 
-// **** Run **** //
-// const SERVER_START_MSG = "Express server started on port: " + config.Port.toString();
-const SERVER_START_MSG = "Express server started on port: " + 5200;
-appMain().then((app) => {
-    const server = http.createServer(app);
-    WebSocket_Server(server);
+    wss.on('connection', async (ws, req) => handleWSConnection(ws, req));
 
-    // server.listen(config.Port, () => {
-    server.listen(5200, () => {
-        logger.info(SERVER_START_MSG);
-    });
+    httpServer.listen(config.Port || 5200, () => logger.info(`Server & WS running on port: ${config.Port || 5200}`));
 });

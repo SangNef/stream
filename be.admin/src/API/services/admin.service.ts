@@ -152,15 +152,15 @@ class AdminService {
         if(
             (!data.email || data.email==='') ||
             (!data.password || data.password==='')
-        ) throw new BadRequestResponse('Data Input Invalid!');
+        ) throw new BadRequestResponse('Thông tin đăng nhập không hợp lệ!');
 
         const accExisted = await Admin.findOne({ where: {
             email: data.email,
         }});
-        if(!accExisted) throw new NotFoundResponse('Not Found Accont Match DataInput!');
+        if(!accExisted) throw new NotFoundResponse('Email không tồn tại!');
 
         if(!await(compare(data.password, accExisted.password)))
-            throw new BadRequestResponse('Login Fail Because InfoInput Incorrect!');
+            throw new BadRequestResponse('Mật khẩu đăng nhập không chính xác!');
 
         const payload = { sub: accExisted.id, role: 'admin' }
 
@@ -172,7 +172,7 @@ class AdminService {
 
     static signup = async (sub: number, data: AdminModelEntity) => {
         if(!data.email || !data.name || !data.password)
-            throw new BadRequestResponse('DataInput Invalid!');
+            throw new BadRequestResponse('Thông tin tạo tài khoản không hợp lệ!');
 
         const accExisted = await Admin.findOne({ where: {
             [Op.or]: [
@@ -180,7 +180,7 @@ class AdminService {
                 { name: data.name}
             ]
         }});
-        if(accExisted) throw new BadRequestResponse('Email or Name Account Existed!');
+        if(accExisted) throw new BadRequestResponse('Email hoặc Tên tài khoản đã được sử dụng!');
 
         let isRoot = 0 as any;
         const infoSub = await Admin.findByPk(sub);
@@ -197,20 +197,25 @@ class AdminService {
         }
         const result = await Admin.create(formatAdmin);
 
+        await AdminHistoryService.addNew({
+            admin_id: sub,
+            action: `Thêm mới tài khoản quản trị viên ${result.id}`,
+        });
+
         return result;
     }
 
-    static createUserAccount = async (data: UserModelEntity) => {
+    static createUserAccount = async (sub: number, data: UserModelEntity) => {
         if(
             (!data.username || data.username==='') ||
             (!data.fullname || data.fullname==='') ||
             (!data.password || data.password==='')
-        ) throw new BadRequestResponse('DataInput Invalid!');
+        ) throw new BadRequestResponse('Thông tin tạo tài khoản không hợp lệ!');
 
         const userExisted = await User.findOne({
             where: { username: data.username}
         });
-        if(userExisted) throw new BadRequestResponse('Username Existed!');
+        if(userExisted) throw new BadRequestResponse('Tên tài khoản đã được sử dụng!');
 
         const formatUser = {
             fullname: data.fullname,
@@ -222,6 +227,11 @@ class AdminService {
             phone: data.phone || null
         }
         const result = await User.create(formatUser);
+
+        await AdminHistoryService.addNew({
+            admin_id: sub,
+            action: `Thêm mới tài khoản nhà sáng tạo ${result.id}`,
+        });
 
         return result;
     }
@@ -235,15 +245,15 @@ class AdminService {
             (phone && (typeof(phone)!=='string' || phone.trim()==='')) ||
             (fullname && (typeof(fullname)!=='string' || fullname.trim()==='')) ||
             (username && (typeof(username)!=='string' || username.trim()===''))
-        ) throw new BadRequestResponse('DataInput Invalid!');
+        ) throw new BadRequestResponse('Thông tin truyền vào không hợp lệ!');
 
         const userExisted = await User.findByPk(user_id);
-        if(!userExisted) throw new NotFoundResponse('User Not Exist!');
+        if(!userExisted) throw new NotFoundResponse('Tài khoản người dùng không tồn tại!');
 
         const usernameExisted = await User.findOne({
             where: { username }
         });
-        if(usernameExisted) throw new BadRequestResponse('Username Existed!');
+        if(usernameExisted) throw new BadRequestResponse('Tên tài khoản đã tồn tại!');
 
         const formatUser = {
             fullname: fullname ?? userExisted.fullname,
@@ -289,7 +299,7 @@ class AdminService {
 
             if(!Number.isNaN(user_id)){
                 const adminExisted = await Admin.findByPk(user_id);
-                if(!adminExisted) throw new NotFoundResponse('Admin Not Exist!');
+                if(!adminExisted) throw new NotFoundResponse('Tài khoản quản trị viên không tồn tại!');
 
                 formatAdmin = {
                     name: name ?? adminExisted.name,
@@ -318,14 +328,13 @@ class AdminService {
     static softDeleteUserAccount = async (id: number, isDelete: boolean, sub: number) => {
         if(Number.isNaN(id)) throw new BadRequestResponse('DataInput Invalid!');
 
-        let result, message = '', init_data = {};
+        let result, message = '';
         if(isDelete){
             const userExisted = await User.findByPk(id);
             if(!userExisted) throw new NotFoundResponse('NotFound Record Match ID!');
 
-            init_data = userExisted;
             result = await User.destroy({ where: { id: id}});
-            message = "Deleted Successfully!";
+            message = "Xóa tài khoản thành công!";
         } else {
             const userDeleted = await User.findOne({ 
                 where: { deletedAt: {[Op.ne]: null}}, 
@@ -334,7 +343,7 @@ class AdminService {
             if(!userDeleted) throw new NotFoundResponse('RecordID Never Delete!');
     
             result = await User.restore({ where: { id: id}});
-            message = "Restored Successfully!";
+            message = "Khôi phục tài khoản thành công!";
         }
 
         await AdminHistoryService.addNew({
@@ -355,7 +364,7 @@ class AdminService {
 
             init_data = adminExisted;
             result = await Admin.destroy({ where: { id }});
-            message = "Deleted Successfully!";
+            message = "Xóa tài khoản thành công!";
         } else {
             const adminDeleted = await Admin.findOne({ 
                 where: { deletedAt: {[Op.ne]: null}}, 
@@ -364,7 +373,7 @@ class AdminService {
             if(!adminDeleted) throw new NotFoundResponse('RecordID Never Delete!');
     
             result = await Admin.restore({ where: { id }});
-            message = "Restored Successfully!";
+            message = "Khôi phục tài khoản thành công!";
         }
 
         await AdminHistoryService.addNew({

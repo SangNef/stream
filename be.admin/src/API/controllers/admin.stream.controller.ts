@@ -4,26 +4,16 @@ import { AdminStreamService } from "../services";
 import { ReqEntity } from "~/type/app.entities";
 
 class AdminStreamController {
-    static getAllStreamLiving = async (req: Request, res: Response) => {
-        const page = req.query.page as string;
+    static getStreams = async (req: Request, res: Response) => {
+        const page = parseInt(req.query.page as string);
         const search = req.query.search as string;
-        const limit = req.query.limit as string;
+        const limit = parseInt(req.query.limit as string);
+        const status = req.query.status as string;
 
-        const result = await AdminStreamService.getAllStreamLiving(parseInt(page), parseInt(limit), search);
+        const result = await AdminStreamService.getStreams(page, limit, search, status);
         return new OK({
             metadata: result,
-            message: "Get list of successful stream living!"
-        }).send(res);
-    }
-    static getAllStreamStop = async (req: Request, res: Response) => {
-        const page = req.query.page as string;
-        const search = req.query.search as string;
-        const limit = req.query.limit as string;
-
-        const result = await AdminStreamService.getAllStreamStop(parseInt(page), parseInt(limit), search);
-        return new OK({
-            metadata: result,
-            message: "Get list of successful stream stop!"
+            message: "Lấy danh sách stream thành công!"
         }).send(res);
     }
 
@@ -35,7 +25,7 @@ class AdminStreamController {
         const result = await AdminStreamService.getAllStreamBySub(creator_id, page, limit);
         return new OK({
             metadata: result,
-            message: "Get Streams Successfully!"
+            message: "Lấy danh sách stream theo nhà sáng tạo thành công!"
         }).send(res);
     }
 
@@ -44,7 +34,7 @@ class AdminStreamController {
         const result = await AdminStreamService.stopLiveStream(parseInt(streamid), req.user?.sub);
         return new OK({
             metadata: result,
-            message: "Stoped Livestream Successfully!"
+            message: "Dừng livestream thành công!"
         }).send(res);
     }
 }

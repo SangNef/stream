@@ -2,7 +2,6 @@ import { Request, Response } from "express";
 import { OK } from "../core/SuccessResponse";
 import { AdminTransactionService } from "../services";
 import { ReqEntity } from "../../type/app.entities";
-import { stringToBoolean } from "../helpers/function";
 
 class AdminTransactionController {
     static getHistoryTransaction = async (req: Request, res: Response) => {
@@ -13,7 +12,7 @@ class AdminTransactionController {
         const result = await AdminTransactionService.getHistoryTransachtion(page, limit, user_id);
         return new OK({
             metadata: result,
-            message: 'Lấy lịch sử giao dịch thành công!'
+            message: 'Lấy lịch sử giao dịch theo người dùng thành công!'
         }).send(res);
     }
 
@@ -33,27 +32,16 @@ class AdminTransactionController {
         const result = await AdminTransactionService.getTransactions(sub, page, limit, user_id, type, status, min_value, max_value, amount, start_date, end_date);
         return new OK({
             metadata: result,
-            message: 'Get Transactions Successfully!'
+            message: 'Lấy danh sách lịch sử giao dịch thành công!'
         }).send(res);
     }
 
-    static submitTransaction = async (req: ReqEntity, res: Response) => {
-        const transaction_id = parseInt(req.params.transaction_id);
-        const sub = req.user?.sub;
-        
-        const result = await AdminTransactionService.submitTransaction(transaction_id, sub);
-        return new OK({
-            metadata: result,
-            message: 'Submit Transaction Successfully!'
-        }).send(res);
-    }
+    static toggleTransaction = async (req: ReqEntity, res: Response) => {
+        const sub = req.user.sub;
+        const transactionId = parseInt(req.params.transaction_id);
+        const status = req.body.status;
 
-    static cancelTransaction = async (req: ReqEntity, res: Response) => {
-        const transaction_id = parseInt(req.params.transaction_id);
-        const is_cancel = stringToBoolean(req.query.is_cancel as string);
-        const sub = req.user?.sub;
-
-        const result = await AdminTransactionService.cancelTransaction(transaction_id, is_cancel, sub);
+        const result = await AdminTransactionService.toggleTransaction(transactionId, sub, status);
         return new OK({
             metadata: result.result,
             message: result.message

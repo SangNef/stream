@@ -16,17 +16,17 @@ class AuthService {
   static providerRefreshToken = async (req: Request, res: Response) => {
     const tokenCookie = req.cookies;
     const refreshToken = tokenCookie.refreshToken;
-    if(!refreshToken) throw new BadRequestResponse('DataInput Invalid 123!');
+    if(!refreshToken) throw new BadRequestResponse('Mã làm mới không xác định!');
 
     const payload = jwtVerifyAccessToken(refreshToken, process.env.JWT_SECRET_REFRESHTOKEN!)
-    if(!payload) throw new BadRequestResponse('RefreshToken Incorrect!');
+    if(!payload) throw new BadRequestResponse('Mã làm mới không chính xác!');
 
     delete payload.exp;
     return res.status(200).json({ accessToken: jwtSignAccessToken(payload)});
   }
 
   static getProfileBySub = async (sub: number, role: string) => {
-    if(role!=='admin') throw new NotFoundResponse('NotFound Profile Match Account!');
+    if(role!=='admin') throw new NotFoundResponse('Không tìm thấy thông tin tài khoản!');
 
     let result;
     result = await Admin.findByPk(sub);
@@ -57,22 +57,22 @@ class AuthService {
 
   static changPassword = async (sub: number, role: string, newPass: string, code: string) => {
     if(!newPass || newPass.trim()==='') 
-      throw new BadRequestResponse('DataInput Invalid! em')
+      throw new BadRequestResponse('Dữ liệu cập nhật mật khẩu không hợp lệ!')
 
     const infoAcc = await User.findByPk(sub);
 
     if(!await compare(code, infoAcc!.password)){
-      throw new BadRequestResponse('Old Password Incorrect!')
+      throw new BadRequestResponse('Mật khẩu cũ không chính xác!')
     }
 
     const checkNewPass = await this.isNewPassword(sub, newPass, role);
-    if(!checkNewPass) throw new BadRequestResponse('Cannot set new password the same as old password!');
+    if(!checkNewPass) throw new BadRequestResponse('Mật khẩu mới không được giống mật khẩu cũ!');
     
     await Admin.update({
       password: await hash(newPass.trim())
     }, { where: { id: sub}});
 
-    return new OK({ message: "Updated Successfully!"});
+    return new OK({ message: "Cập nhật mật khẩu thành công!"});
   }
 
   static verifyCode = (emailTo: string, code: string) => {

@@ -12,10 +12,10 @@ class AuthService {
   static providerRefreshToken = async (req: Request, res: Response) => {
     const tokenCookie = req.cookies;
     const refreshToken = tokenCookie.refreshToken;
-    if(!refreshToken) throw new BadRequestResponse('DataInput Invalid 123!');
+    if(!refreshToken) throw new BadRequestResponse('Dữ liệu truyền vào không hợp lệ!');
 
     const payload = jwtVerifyAccessToken(refreshToken, process.env.JWT_SECRET_REFRESHTOKEN!)
-    if(!payload) throw new BadRequestResponse('RefreshToken Incorrect!');
+    if(!payload) throw new BadRequestResponse('Mã tạo mới không hợp lệ!');
 
     delete payload.exp;
     return res.status(200).json({ accessToken: jwtSignAccessToken(payload)});
@@ -57,16 +57,16 @@ class AuthService {
 
   static changPassword = async (sub: number, newPass: string, code: string) => {
     if(!newPass || newPass.trim()==='') 
-      throw new BadRequestResponse('DataInput Invalid! em')
+      throw new BadRequestResponse('Dữ liệu truyền vào không hợp lệ!')
 
     const infoAcc = await User.findByPk(sub);
 
     if(!await compare(code, infoAcc!.password)){
-      throw new BadRequestResponse('Old Password Incorrect!')
+      throw new BadRequestResponse('Mật khẩu cũ không chính xác!')
     }
 
     const checkNewPass = await this.isNewPassword(sub, newPass);
-    if(!checkNewPass) throw new BadRequestResponse('Cannot set new password the same as old password!');
+    if(!checkNewPass) throw new BadRequestResponse('Mật khẩu mới không được giống mật khẩu cũ!');
     
     const result = await User.update({
       password: await hash(newPass.trim())

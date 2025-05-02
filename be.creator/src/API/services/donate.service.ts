@@ -33,7 +33,7 @@ class UserDonateService {
                 {
                     model: DonateItemModel,
                     as: 'donateitems',
-                    attributes: ['name', 'imgae', 'price']
+                    attributes: ['name', 'image', 'price']
                 },
                 {
                     model: Stream,

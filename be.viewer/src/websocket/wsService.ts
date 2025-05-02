@@ -1,9 +1,6 @@
-import "dotenv/config";
-import { WebSocket } from "ws";
-import { jwtVerifyAccessToken } from "../API/helpers/jwt";
-import { arrViewer } from "./websocket";
-import AuthService from "../API/services/auth.service";
-import { WS_Stream_Entity } from "../type/ws.entities";
+import { jwtVerifyAccessToken } from "~/API/helpers/jwt";
+import { AuthService } from "~/API/services";
+import { WS_Stream_Entity } from "~/type/ws.entities";
 
 // Lưu thông tin người dùng từ token khi kết nối ws.
 export const saveNewConnectToWebSocket = (websocket: WebSocket, req: any) => {
@@ -20,7 +17,7 @@ export const saveNewConnectToWebSocket = (websocket: WebSocket, req: any) => {
         return payload;
     }
 
-    const profile = AuthService.getProfileBySub(parseInt(payload.sub!), payload.role);
+    const profile = AuthService.getProfileBySub(parseInt(payload.sub!));
     return profile;
 }
 

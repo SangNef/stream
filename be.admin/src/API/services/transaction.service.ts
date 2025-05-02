@@ -9,10 +9,10 @@ class AdminTransactionService {
     // Admin: Lấy lịch sử giao dịch của user chỉ định.
     static getHistoryTransachtion = async (page: number, limit: number, user_id: number) => {
         if(Number.isNaN(user_id))
-            throw new BadRequestResponse('ParamInput Invalid!');
+            throw new BadRequestResponse('ID người dùng không hợp lệ!');
 
         const userExisted = await User.findByPk(user_id);
-        if(!userExisted) throw new NotFoundResponse('User Not Exist!');
+        if(!userExisted) throw new NotFoundResponse('Người dùng không tồn tại!');
 
         const pageCurrent = Number.isNaN(page)? 1: page;
         const recordsOfPage = Number.isNaN(limit)? 10: limit;
@@ -63,7 +63,7 @@ class AdminTransactionService {
         if(!Number.isNaN(amount)) condition.value = amount;
         if(!Number.isNaN(min_value) && !Number.isNaN(max_value)){
             if(min_value>max_value)
-                throw new BadRequestResponse('Param min/max_value in query invalid!');
+                throw new BadRequestResponse('Tham số min/max_value không chính xác!');
 
             condition.amount = { [Op.between]: [cast(min_value, 'DECIMAL(10, 2)'), cast(max_value, 'DECIMAL(10, 2)')] };
         } else if (!Number.isNaN(min_value) && Number.isNaN(max_value)) {
@@ -117,81 +117,81 @@ class AdminTransactionService {
         }
     }
 
-    static submitTransaction = async (transaction_id: number, sub: number) => {
+    static toggleTransaction = async (transaction_id: number, sub: number, status: string) => {
         if(Number.isNaN(transaction_id))
-            throw new BadRequestResponse('ParamInput Invalid!');
+            throw new BadRequestResponse('ID Giao dịch không hợp lệ!');
 
-        const transactionExisted = await TransactionModel.findOne({ where: {
-            id: transaction_id,
-            status: 'pending'
-        }});
-        if(!transactionExisted) throw new NotFoundResponse('NotFound This Transaction!');
+        if(
+            (!status || typeof(status)!=='string' || status.trim()==='') ||
+            (status!=='pending' && status!=='success' && status!=='cancel')
+        ) throw new BadRequestResponse('Trạng thái giao dịch không hợp lệ!');
 
-        const formatTransaction = {
-            status: 'success' as TransactionStatus
-        }
-        const result = await TransactionModel.update(formatTransaction, {
-            where: { id: transaction_id }
-        });
+        let result = 0 as any, message = "";
+        if(status==='success'){
+            const transactionExisted = await TransactionModel.findOne({ where: {
+                id: transaction_id,
+                status: 'pending'
+            }});
+            if(!transactionExisted) throw new NotFoundResponse('Không tìm thấy giao dịch chờ phê duyệt!');
 
-        await AdminHistoryService.addNew({
-            admin_id: sub,
-            action: `Phê duyệt yêu cầu giao dịch ${transaction_id}`,
-        });
+            const formatTransaction = {
+                status: 'success' as TransactionStatus
+            }
+            result = await TransactionModel.update(formatTransaction, {
+                where: { id: transaction_id }
+            });
+            message = "Phê duyệt yêu cầu giao dịch thành công!";
 
-        const infoUser = await User.findByPk(transactionExisted.user_id);
-        if(transactionExisted.type==='deposit'){
-            const updateCoin = parseInt(infoUser!.balance as any) + parseInt(transactionExisted.amount as any);
-            await User.update(
-                { balance: updateCoin },
-                { where: { id: transactionExisted.user_id } }
-            );
-        }
-        if(transactionExisted.type==='withdraw'){
-            const updateCoin = parseInt(infoUser!.balance as any) - parseInt(transactionExisted.amount as any);
-            await User.update(
-                { balance: updateCoin },
-                { where: { id: transactionExisted.user_id } }
-            );
-        }
+            await AdminHistoryService.addNew({
+                admin_id: sub,
+                action: `Phê duyệt yêu cầu giao dịch ${transaction_id}`,
+            });
 
-        return result;
-    }
+            // Tự động tính số dư tài khoản sau giao dịch.
+            const infoUser = await User.findByPk(transactionExisted.user_id);
+            if(transactionExisted.type==='deposit'){
+                const updateCoin = parseInt(infoUser!.balance as any) + parseInt(transactionExisted.amount as any);
+                await User.update(
+                    { balance: updateCoin },
+                    { where: { id: transactionExisted.user_id } }
+                );
+            }
+            if(transactionExisted.type==='withdraw'){
+                const updateCoin = parseInt(infoUser!.balance as any) - parseInt(transactionExisted.amount as any);
+                await User.update(
+                    { balance: updateCoin },
+                    { where: { id: transactionExisted.user_id } }
+                );
+            }
+        } else if (status==='cancel') {
+            const transactionExisted = await TransactionModel.findOne({ where: {
+                id: transaction_id,
+                status: 'pending'
+            }});
+            if(!transactionExisted) throw new NotFoundResponse('Không tìm thấy giao dịch chờ phê duyệt!');
 
-    // Hủy hoặc khôi phục yêu cầu chưa được phê duyệt.
-    // ---> Chỉ có thể hủy được các yêu cầu chưa phê duyệt.
-    static cancelTransaction = async (transaction_id: number, is_cancel: boolean, sub: number) => {
-        if(Number.isNaN(transaction_id))
-            throw new BadRequestResponse('ParamInput Invalid!');
-
-        const transactionExisted = await TransactionModel.findOne({ where: {
-            id: transaction_id,
-            status: 'pending'
-        }});
-        if(!transactionExisted) throw new NotFoundResponse('NotFound Transaction!');
-
-        let formatTransaction = {}, message;
-        if(is_cancel){
-            if(transactionExisted.status==='cancel')
-                throw new BadRequestResponse('This transaction has been cancelled!');
-
-            formatTransaction = { status: 'cancel' }
-            message = 'Cancel Transaction Successfully!'
+            const formatTransaction = {
+                status: 'cancel' as TransactionStatus
+            }
+            result = await TransactionModel.update(formatTransaction, { where: {
+                id: transaction_id
+            }});
+            message = "Hủy bỏ yêu cầu giao dịch thành công!";
         } else {
-            if(transactionExisted.status!=='cancel')
-                throw new BadRequestResponse('This transaction has not been processed yet!');
+            const transactionExisted = await TransactionModel.findOne({ where: {
+                id: transaction_id,
+                status: 'cancel'
+            }});
+            if(!transactionExisted) throw new NotFoundResponse('Giao dịch bị hủy không tồn tại!');
 
-            formatTransaction = { status: 'pending' }
-            message = 'Uncancel Transaction Successfully!'
+            const formatTransaction = {
+                status: 'pending' as TransactionStatus
+            }
+            result = await TransactionModel.update(formatTransaction, { where: {
+                id: transaction_id
+            }});
+            message = "Khôi phục yêu cầu giao dịch thành công!";
         }
-
-        const result = await TransactionModel.update(formatTransaction, {
-            where: { id: transaction_id }
-        });
-        await AdminHistoryService.addNew({
-            admin_id: sub,
-            action: `${is_cancel? 'Hủy': 'Khôi phục'} yêu cầu giao dịch ${transaction_id}`,
-        });
 
         return { result, message };
     }

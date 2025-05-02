@@ -14,7 +14,7 @@ class AdminHistoryController {
         const result = await AdminHistoryService.getHistories(page, limit, admin_id, action, start_date, end_date);
         return new OK({
             metadata: result,
-            message: 'Get Histories Successfully!'
+            message: 'Lấy danh sách lịch sử hoạt động của quản trị viên thành công!'
         }).send(res);
     }
 }

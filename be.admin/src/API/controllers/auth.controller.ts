@@ -10,7 +10,7 @@ class AuthController {
     const result = await AuthService.getProfileBySub(sub, role);
     return new OK({
       metadata: result as any,
-      message: "Get Your Profile Successfully!"
+      message: "Lấy thông tin hồ sơ của bạn thành công!"
     }).send(res);
   }
 
@@ -20,7 +20,7 @@ class AuthController {
     return new CREATED({
         metadata: result.success,
         message: 
-        `${result.error.length} files error: ${result.error}. ||||| ${result.success.length} files success.`
+        `${result.error.length} file lỗi: ${result.error}. ||||| ${result.success.length} file thành công.`
     }).send(res);
   }
 
@@ -33,7 +33,7 @@ class AuthController {
     const result = await AuthService.changPassword(sub, role, newPass, code);
     return new OK({
       metadata: result,
-      message: "Changed Your Password Successfully!"
+      message: "Thay đổi mật khẩu tài khoản của bạn thành công!"
     }).send(res);
   }
 }

@@ -12,10 +12,10 @@ class AuthService {
   static providerRefreshToken = async (req: Request, res: Response) => {
     const tokenCookie = req.cookies;
     const refreshToken = tokenCookie.refreshToken;
-    if(!refreshToken) throw new BadRequestResponse('DataInput Invalid 123!');
+    if(!refreshToken) throw new BadRequestResponse('Dữ liệu truyền vào không hợp lệ!');
 
     const payload = jwtVerifyAccessToken(refreshToken, process.env.JWT_SECRET_REFRESHTOKEN!)
-    if(!payload) throw new BadRequestResponse('RefreshToken Incorrect!');
+    if(!payload) throw new BadRequestResponse('Mã tạo mới không chính xác!');
 
     delete payload.exp;
     return res.status(200).json({ accessToken: jwtSignAccessToken(payload)});
@@ -35,7 +35,7 @@ class AuthService {
 
   // Tải ảnh mới lên hệ thống và trả về url của ảnh.
   static uploadImages = async (files: any) => {
-    if(!files || !files.length || files.length===0) throw new BadRequestResponse("DataInput Invalid! xxx");
+    if(!files || !files.length || files.length===0) throw new BadRequestResponse("Dữ liệu truyền vào không hợp lệ!");
 
     const baseUrl = process.env.URL_IMG_IN_DB;
     let arrImageUrl: any[] = [], arrFileError: any[] = [];
@@ -56,19 +56,19 @@ class AuthService {
   }
 
   static changPassword = async (sub: number, role: string, newPass: string, code: string) => {
-    if(role!=='user') throw new Unauthorized('Account Enough Rights!');
+    if(role!=='user') throw new Unauthorized('Tài khoản không đủ quyền!');
 
     if(!newPass || newPass.trim()==='') 
-      throw new BadRequestResponse('DataInput Invalid! em')
+      throw new BadRequestResponse('Dữ liệu truyền vào không hợp lệ!')
 
     const infoAcc = await User.findByPk(sub);
 
     if(!await compare(code, infoAcc!.password)){
-      throw new BadRequestResponse('Old Password Incorrect!')
+      throw new BadRequestResponse('Mật khẩu cũ không chính xác!')
     }
 
     const checkNewPass = await this.isNewPassword(sub, newPass, role);
-    if(!checkNewPass) throw new BadRequestResponse('Cannot set new password the same as old password!');
+    if(!checkNewPass) throw new BadRequestResponse('Mật khẩu mới không được giống mật khẩu cũ!');
     
     const result = await User.update({
       password: await hash(newPass.trim())

@@ -2,21 +2,26 @@ import { literal, Op } from "sequelize";
 import Stream from "../../models/stream";
 import User from "../../models/user";
 import { BadRequestResponse, NotFoundResponse } from "../core/ErrorResponse";
-import { OK } from "../core/SuccessResponse";
 import AdminHistoryService from "./admin.history.service";
 
 class AdminStreamService {
-    // Lấy ra tất cả (hoặc tìm kiếm một) stream đang live.
-    static getAllStreamLiving = async (page: number, limit: number, search: string) => {
+    static getStreams = async (page: number, limit: number, search: string, status: string) => {
         const currentPage = Number.isNaN(page) ? 1 : page;
         const limitRecords = Number.isNaN(limit) ? 10 : limit;
         const offset = (currentPage - 1) * limitRecords;
 
-        const strSearch = (search && search !== ':search') ? search : '';
-        const condition = `%${strSearch}%`;
-        const conditionSearch = {
-            [Op.or]: [{ title: { [Op.like]: condition } }]
+        let condition = {} as any;
+        if(search && search.trim()!=='') {
+            const stringQuery = `%${search}%`;
+            if (!condition[Op.or]) condition[Op.or] = [];
+
+            condition[Op.or].push(
+                { title: stringQuery },
+                { '$users.username$': { [Op.like]: stringQuery } },
+                { '$users.fullname$': { [Op.like]: stringQuery } }
+            );
         }
+        if(status && (status==='pending' || status==='live' || status==='stop')) condition.status = status;
 
         const result = await Stream.findAndCountAll({
             limit: limitRecords,
@@ -31,18 +36,8 @@ class AdminStreamService {
                 }
             ],
             order: [['view', 'DESC'], ['id', 'DESC']],
-            where: {
-                [Op.and]: [
-                    { status: 'live' },
-                    {
-                        [Op.or]: [
-                            conditionSearch,
-                            { '$users.username$': { [Op.like]: condition } },
-                            { '$users.fullname$': { [Op.like]: condition } }
-                        ]
-                    }
-                ]
-            }
+            where: condition,
+            distinct: true
         });
 
         return {
@@ -53,54 +48,6 @@ class AdminStreamService {
             records: result.rows
         }
     }
-    
-    static getAllStreamStop = async (page: number, limit: number, search: string) => {
-        const currentPage = Number.isNaN(page) ? 1 : page;
-        const limitRecords = Number.isNaN(limit) ? 10 : limit;
-        const offset = (currentPage - 1) * limitRecords;
-
-        const strSearch = (search && search !== ':search') ? search : '';
-        const condition = `%${strSearch}%`;
-        const conditionSearch = {
-            [Op.or]: [{ title: { [Op.like]: condition } }]
-        };
-
-        const result = await Stream.findAndCountAll({
-            limit: limitRecords,
-            offset: offset,
-            attributes: ['id', 'thumbnail', 'stream_url', 'title', 'status', 'view', 'createdAt', 'updatedAt'],
-            include: [
-                {
-                    model: User,
-                    as: 'users',
-                    attributes: ['id', 'fullname', 'username', 'avatar', 'balance'],
-                    required: false
-                }
-            ],
-            order: [['view', 'DESC'], ['id', 'DESC']],
-            where: {
-                [Op.and]: [
-                    { status: 'stop' },  // Stream đã kết thúc
-                    {
-                        [Op.or]: [
-                            conditionSearch,
-                            { '$users.username$': { [Op.like]: condition } },
-                            { '$users.fullname$': { [Op.like]: condition } }
-                        ]
-                    }
-                ]
-            },
-            paranoid: false // Nếu muốn lấy luôn cả bản ghi bị xóa mềm
-        });
-
-        return {
-            totalRecords: result.count,
-            totalPages: Math.ceil(result.count / limitRecords),
-            pageCurrent: currentPage,
-            recordsOfPage: limitRecords,
-            records: result.rows
-        };
-    };
 
     // Lấy tất cả stream theo creator tìm kiếm.
     // Admin có thể lấy được cả những stream đã xóa mềm.
@@ -140,7 +87,7 @@ class AdminStreamService {
     }
 
     static stopLiveStream = async (streamid: number, sub: number) => {
-        if (Number.isNaN(streamid)) throw new BadRequestResponse('DataInput Invalid!');
+        if (Number.isNaN(streamid)) throw new BadRequestResponse('ID stream không hợp lệ!');
 
         const streamLiving = await Stream.findOne({
             where: {
@@ -148,7 +95,7 @@ class AdminStreamService {
                 id: streamid
             }
         });
-        if (!streamLiving) throw new NotFoundResponse('NotFound Stream Living!');
+        if (!streamLiving) throw new NotFoundResponse('Không tìm thấy livestream!');
 
         const streamUrlStoped = 'stopped:' + streamLiving.stream_url;
         const formatStream = {
@@ -156,7 +103,7 @@ class AdminStreamService {
             status: 'stop' as any
         }
 
-        await Stream.update(formatStream, {
+        const result = await Stream.update(formatStream, {
             where: { id: streamid }
         });
         await AdminHistoryService.addNew({
@@ -164,7 +111,7 @@ class AdminStreamService {
             action: `Đã cấm livestream ${streamid}`
         });
 
-        return new OK({ message: "Stopped Livestream Successfully!" });
+        return result;
     }
 }
 

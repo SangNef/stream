@@ -12,7 +12,7 @@ class UserStreamController {
         const result = await UserStreamService.getStreamsHot(page, limit, is_streaming);
         return new OK({
             metadata: result,
-            message: "Get list of successfull stream hot!"
+            message: "Lấy danh sách livestream HOT thành công!"
         }).send(res);
     }
 
@@ -21,7 +21,7 @@ class UserStreamController {
         const result = await UserStreamService.getCreatorHot(date);
         return new OK({
             metadata: result,
-            message: "Get list of successful creator hot!"
+            message: "Lấy danh sách nhà sáng tạo nội dung HOT thành công!"
         }).send(res);
     }
 
@@ -33,7 +33,7 @@ class UserStreamController {
         const result = await UserStreamService.getAllStreamBySub(sub, page, limit);
         return new OK({
             metadata: result,
-            message: "Get list of successful your stream!"
+            message: "Lấy danh sách stream của bạn thành công!"
         }).send(res);
     }
 
@@ -44,7 +44,7 @@ class UserStreamController {
         const result = await UserStreamService.getStreamById(id, sub);
         return new OK({
             metadata: result,
-            message: "Get Info Stream Successfully!"
+            message: "Lấy thông tin stream thành công!"
         }).send(res);
     }
 
@@ -53,7 +53,7 @@ class UserStreamController {
         const result = await UserStreamService.getStreamUrlByCreatorId(parseInt(creator_id));
         return new OK({
             metadata: result as any,
-            message: "Get Stream Url Successfully!"
+            message: "Lấy đường dẫn đến livestream của nhà sáng tạo thành công!"
         }).send(res);
     }
 
@@ -64,7 +64,7 @@ class UserStreamController {
         const result = await UserStreamService.getListStreamOfCreatorFollowed(sub, page, limit);
         return new OK({
             metadata: result,
-            message: "Get List Stream Of Creator Followed Successfully!"
+            message: "Lấy danh sách livestream của nhà sáng tạo đã theo dõi thành công!"
         }).send(res);
     }
 
@@ -75,7 +75,7 @@ class UserStreamController {
         const result = await UserStreamService.statisticalByTime(sub, page, limit, req.query);
         return new OK({
             metadata: result,
-            message: 'Get Statistical By Time Successfully!'
+            message: 'Lấy thống kê stream theo khoảng thời gian thành công!'
         }).send(res);
     }
 
@@ -91,14 +91,14 @@ class UserStreamController {
         }
         
         const result = await UserStreamService.createStream(data);
-        return new CREATED({ metadata: result, message: "Created Successfully!"}).send(res);
+        return new CREATED({ metadata: result, message: "Tạo livestream thành công!"}).send(res);
     }
 
     static updateStream = async (req: Request, res: Response) => {
         const data = req.body;
         const id = parseInt(req.params.streamid);
         const result = await UserStreamService.updateStream(id, data);
-        return new OK({ metadata: result, message: "Updated Successfully!"}).send(res);
+        return new OK({ metadata: result, message: "Cập nhật livestream thành công!"}).send(res);
     }
 }
 

@@ -13,7 +13,7 @@ class UserDonateController {
         const result = await UserDonateService.getListInfoUserDonated(sub, page, limit, search);
         return new OK({
             metadata: result,
-            message: 'Get List Info User Donated Successfully!'
+            message: 'Lấy danh sách quà tặng thành công!'
         }).send(res);
     }
 }

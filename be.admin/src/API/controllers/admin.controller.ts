@@ -15,7 +15,7 @@ class AdminController {
         const result = await AdminService.getListAdmin(search, parseInt(page), parseInt(limit), is_paranoid, sub);
         return new OK({
             metadata: result,
-            message: "Get list of successful admin!"
+            message: "Lấy danh sách quản trị viên thành công!"
         }).send(res);
     }
 
@@ -29,7 +29,7 @@ class AdminController {
         const result = await AdminService.getListRoleUser(search, period, parseInt(limit), parseInt(page), isParanoid);
         return new OK({
             metadata: result,
-            message: "Get list of successful user!"
+            message: "Lấy danh sách người dùng thành công!"
         }).send(res);
     }
 
@@ -43,7 +43,7 @@ class AdminController {
         const result = await AdminService.getListRoleCreator(search, period, parseInt(recordsLimit), parseInt(page), is_paranoid);
         return new OK({
             metadata: result,
-            message: "Get list of successful role creator!"
+            message: "Lấy danh sách nhà sáng tạo thành công!"
         }).send(res);
     }
 
@@ -59,7 +59,7 @@ class AdminController {
         });
         const { refreshToken, ...newResult } = result;
 
-        return new OK({ metadata: newResult, message: "Login Successfully!"}).send(res);
+        return new OK({ metadata: newResult, message: "Đăng nhập thành công!"}).send(res);
     }
 
     static signup = async (req: ReqEntity, res: Response) => {
@@ -72,21 +72,22 @@ class AdminController {
         });
         return new CREATED({
             metadata: result,
-            message: "Created Account Admin Successfully!"
+            message: "Tạo tài khoản admin mới thành công!"
         }).send(res);
     }
 
     static createNewUserAccount = async (req: ReqEntity, res: Response) => {
+        const sub = req.user.sub;
         const data = req.body;
 
-        const result = await AdminService.createUserAccount(data);
+        const result = await AdminService.createUserAccount(sub, data);
         await AdminHistoryService.addNew({
             admin_id: req.user?.sub,
             action: `Thêm mới tài khoản người dùng. Dữ liệu vào: ${JSON.stringify(data)}`
         });
         return new CREATED({
             metadata: result,
-            message: "Created Account User Successfully!"
+            message: "Thêm mới tài khoản nhà sáng tạo thành công!"
         }).send(res);
     }
 
@@ -98,7 +99,7 @@ class AdminController {
         const result = await AdminService.updateUserAccount(user_id, data, sub);
         return new OK({
             metadata: result,
-            message: 'Updated Account User Successfully!'
+            message: 'Cập nhật thông tin tài khoản người dùng thành công!'
         }).send(res);
     }
 
@@ -110,7 +111,7 @@ class AdminController {
         const result = await AdminService.updateAdminAccount(sub, user_id, data);
         return new OK({
             metadata: result,
-            message: 'Updated Account Admin Successfully!'
+            message: 'Cập nhật tài khoản quản trị viên thành công!'
         }).send(res);
     }
 

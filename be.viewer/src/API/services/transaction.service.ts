@@ -9,10 +9,10 @@ class UserTransactionService {
     // User/Creator: Lấy lịch sử giao dịch của chính mình.
     static getHistoryTransachtion = async (page: number, limit: number, user_id: number) => {
         if(Number.isNaN(user_id))
-            throw new BadRequestResponse('ParamInput Invalid!');
+            throw new BadRequestResponse('Tham số truyền vào không hợp lệ!');
 
         const userExisted = await User.findByPk(user_id);
-        if(!userExisted) throw new NotFoundResponse('User Not Exist!');
+        if(!userExisted) throw new NotFoundResponse('Người dùng không tồn tại!');
 
         const pageCurrent = Number.isNaN(page)? 1: page;
         const recordsOfPage = Number.isNaN(limit)? 10: limit;
@@ -52,7 +52,7 @@ class UserTransactionService {
         if(
             Number.isNaN(value) ||
             (type!=='deposit' && type!=='withdraw')
-        ) throw new BadRequestResponse('DataInput Invalid!');
+        ) throw new BadRequestResponse('Dữ liệu truyền vào không hợp lệ!');
 
         const formatTransaction = {
             user_id: sub,
