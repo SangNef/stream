@@ -28,10 +28,10 @@ class AdminTransactionService {
 
         let totalIn = 0, totalOut = 0;
         result.rows.map(items => {
-            if(items.type==='deposit' && items.status==='success'){
+            if(items.type===TransactionType.deposit && items.status===TransactionStatus.success){
                 totalOut += parseInt(items.amount as any);
             }
-            if(items.type==='withdraw' && items.status==='success'){
+            if(items.type===TransactionType.withdraw && items.status===TransactionStatus.success){
                 totalIn += parseInt(items.amount as any);
             }
         });
@@ -123,19 +123,19 @@ class AdminTransactionService {
 
         if(
             (!status || typeof(status)!=='string' || status.trim()==='') ||
-            (status!=='pending' && status!=='success' && status!=='cancel')
+            (status!==TransactionStatus.pending && status!==TransactionStatus.success && status!==TransactionStatus.cancel)
         ) throw new BadRequestResponse('Trạng thái giao dịch không hợp lệ!');
 
         let result = 0 as any, message = "";
-        if(status==='success'){
+        if(status===TransactionStatus.success){
             const transactionExisted = await TransactionModel.findOne({ where: {
                 id: transaction_id,
-                status: 'pending'
+                status: TransactionStatus.pending
             }});
             if(!transactionExisted) throw new NotFoundResponse('Không tìm thấy giao dịch chờ phê duyệt!');
 
             const formatTransaction = {
-                status: 'success' as TransactionStatus
+                status: TransactionStatus.success
             }
             result = await TransactionModel.update(formatTransaction, {
                 where: { id: transaction_id }
@@ -149,29 +149,29 @@ class AdminTransactionService {
 
             // Tự động tính số dư tài khoản sau giao dịch.
             const infoUser = await User.findByPk(transactionExisted.user_id);
-            if(transactionExisted.type==='deposit'){
+            if(transactionExisted.type===TransactionType.deposit){
                 const updateCoin = parseInt(infoUser!.balance as any) + parseInt(transactionExisted.amount as any);
                 await User.update(
                     { balance: updateCoin },
                     { where: { id: transactionExisted.user_id } }
                 );
             }
-            if(transactionExisted.type==='withdraw'){
+            if(transactionExisted.type===TransactionType.withdraw){
                 const updateCoin = parseInt(infoUser!.balance as any) - parseInt(transactionExisted.amount as any);
                 await User.update(
                     { balance: updateCoin },
                     { where: { id: transactionExisted.user_id } }
                 );
             }
-        } else if (status==='cancel') {
+        } else if (status===TransactionStatus.cancel) {
             const transactionExisted = await TransactionModel.findOne({ where: {
                 id: transaction_id,
-                status: 'pending'
+                status: TransactionStatus.pending
             }});
             if(!transactionExisted) throw new NotFoundResponse('Không tìm thấy giao dịch chờ phê duyệt!');
 
             const formatTransaction = {
-                status: 'cancel' as TransactionStatus
+                status: TransactionStatus.cancel
             }
             result = await TransactionModel.update(formatTransaction, { where: {
                 id: transaction_id
@@ -180,12 +180,12 @@ class AdminTransactionService {
         } else {
             const transactionExisted = await TransactionModel.findOne({ where: {
                 id: transaction_id,
-                status: 'cancel'
+                status: TransactionStatus.cancel
             }});
             if(!transactionExisted) throw new NotFoundResponse('Giao dịch bị hủy không tồn tại!');
 
             const formatTransaction = {
-                status: 'pending' as TransactionStatus
+                status: TransactionStatus.pending
             }
             result = await TransactionModel.update(formatTransaction, { where: {
                 id: transaction_id

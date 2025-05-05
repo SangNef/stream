@@ -3,6 +3,7 @@ import Stream from "../../models/stream";
 import User from "../../models/user";
 import { BadRequestResponse, NotFoundResponse } from "../core/ErrorResponse";
 import AdminHistoryService from "./admin.history.service";
+import { StreamStatus } from "~/type/app.entities";
 
 class AdminStreamService {
     static getStreams = async (page: number, limit: number, search: string, status: string) => {
@@ -21,7 +22,7 @@ class AdminStreamService {
                 { '$users.fullname$': { [Op.like]: stringQuery } }
             );
         }
-        if(status && (status==='pending' || status==='live' || status==='stop')) condition.status = status;
+        if(status && (status===StreamStatus.PENDING || status===StreamStatus.LIVE || status===StreamStatus.STOP)) condition.status = status;
 
         const result = await Stream.findAndCountAll({
             limit: limitRecords,
@@ -91,7 +92,7 @@ class AdminStreamService {
 
         const streamLiving = await Stream.findOne({
             where: {
-                status: 'live',
+                status: StreamStatus.LIVE,
                 id: streamid
             }
         });
@@ -100,7 +101,7 @@ class AdminStreamService {
         const streamUrlStoped = 'stopped:' + streamLiving.stream_url;
         const formatStream = {
             stream_url: streamUrlStoped,
-            status: 'stop' as any
+            status: StreamStatus.STOP
         }
 
         const result = await Stream.update(formatStream, {

@@ -3,7 +3,7 @@ import { BadRequestResponse, NotFoundResponse } from '../core/ErrorResponse';
 import Stream from '../../models/stream';
 import User from '../../models/user';
 import Follower from '../../models/follower';
-import { StreamModelEntity, StreamStatus } from '~/type/app.entities';
+import { StreamModelEntity, StreamStatus, UserRole } from '~/type/app.entities';
 import { ConfigModel, Donate, TransactionModel } from '~/models';
 
 interface FilterStream extends StreamModelEntity {
@@ -19,7 +19,7 @@ class UserStreamService {
         const offset = (pageCurrent - 1) * recordOfPage;
 
         let condition = {} as any;
-        if (is_streaming) condition.status = 'live'; // Chỉ lấy stream đang live.
+        if (is_streaming) condition.status = StreamStatus.LIVE; // Chỉ lấy stream đang live.
 
         const result = await Stream.findAndCountAll({
             limit: recordOfPage,
@@ -140,7 +140,7 @@ class UserStreamService {
         if (Number.isNaN(creator_id)) throw new BadRequestResponse('ID nhà sáng tạo nội dung không hợp lệ!');
 
         const creatorExisted = await User.findByPk(creator_id);
-        if (!creatorExisted || creatorExisted.role !== 'creator')
+        if (!creatorExisted || creatorExisted.role !== UserRole.CREATOR)
             throw new NotFoundResponse('Không tìm thấy nhà sáng tạo nội dung phù hợp với ID!');
 
         const result = await Stream.findOne({
@@ -152,7 +152,7 @@ class UserStreamService {
                 where: { id: creator_id },
                 required: true
             },
-            where: { status: 'live' }
+            where: { status: StreamStatus.LIVE }
         });
 
         return result;
@@ -261,8 +261,6 @@ class UserStreamService {
         result.rows.forEach((items: any) => {
             const followers = items?.followers;
             const streams = items?.streams;
-            // const donates = items?.receivers;
-            // const views = items?.streams;
 
             if(followers && Array.isArray(followers)) total.follower = followers.length
             if(streams && Array.isArray(streams)) {
@@ -292,12 +290,12 @@ class UserStreamService {
         if (!userExisted) throw new NotFoundResponse('User Not Exist!');
         const streamsLiving = await Stream.findAll({
             attributes: ['id', 'status'],
-            where: { user_id: userExisted?.id, status: 'live' }
+            where: { user_id: userExisted?.id, status: StreamStatus.LIVE }
         });
         if(streamsLiving){
             streamsLiving.forEach(async (items) => {
                 await Stream.update(
-                    { status: 'stop' as StreamStatus },
+                    { status: StreamStatus.STOP },
                     { where: { id: items?.id } }
                 );
             });
@@ -308,7 +306,7 @@ class UserStreamService {
             thumbnail: data.thumbnail,
             stream_url: data.stream_url!,
             title: data.title,
-            status: 'live'  as any,
+            status: StreamStatus.PENDING,
             view: 0
         }
         const newStream = await Stream.create(formatStream);
@@ -322,7 +320,7 @@ class UserStreamService {
 
         const streamExisted = await Stream.findByPk(id);
         if (!streamExisted) throw new NotFoundResponse('Stream Not Exist!');
-        if (streamExisted.status === 'stop') throw new BadRequestResponse('Can\'t Update Stream Ended!');
+        if (streamExisted.status === StreamStatus.STOP) throw new BadRequestResponse('Can\'t Update Stream Ended!');
 
         if (data.thumbnail) {
             if (typeof (data.thumbnail) !== 'string' || data.thumbnail.trim() === '')
@@ -333,7 +331,7 @@ class UserStreamService {
             thumbnail: data.thumbnail? data.thumbnail: streamExisted.thumbnail,
             stream_url: data.stream_url? data.stream_url: streamExisted.stream_url,
             title: data.title? data.title: streamExisted.title,
-            status: 'stop' as any
+            status: StreamStatus.STOP
         }
         const result = await Stream.update(formatStream, {
             where: { id }

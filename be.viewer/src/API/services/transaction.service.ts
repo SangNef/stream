@@ -28,10 +28,10 @@ class UserTransactionService {
 
         let totalIn = 0, totalOut = 0;
         result.rows.map(items => {
-            if(items.type==='withdraw'){
+            if(items.type === TransactionType.withdraw){
                 totalOut += parseInt(items.amount as any);
             }
-            if(items.type==='deposit'){
+            if(items.type === TransactionType.deposit){
                 totalIn += parseInt(items.amount as any);
             }
         });
@@ -48,17 +48,18 @@ class UserTransactionService {
     }
 
     // Chỉ dành cho user/creator.
-    static addNew = async (sub: number, type: 'deposit' | 'withdraw', value: number) => {
+    // static addNew = async (sub: number, type: 'deposit' | 'withdraw', value: number) => {
+    static addNew = async (sub: number, type: TransactionType, value: number) => {
         if(
             Number.isNaN(value) ||
-            (type!=='deposit' && type!=='withdraw')
+            (type!==TransactionType.deposit && type!==TransactionType.withdraw)
         ) throw new BadRequestResponse('Dữ liệu truyền vào không hợp lệ!');
 
         const formatTransaction = {
             user_id: sub,
-            type: type as TransactionType,
+            type,
             amount: value,
-            status: 'pending' as TransactionStatus
+            status: TransactionStatus.pending
         }
 
         const result = await TransactionModel.create(formatTransaction);

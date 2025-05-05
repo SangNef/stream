@@ -4,6 +4,7 @@ import { User } from "~/models";
 import redisClient from "~/API/helpers/redis";
 import { checkDataInvalid } from "../wsService";
 import { viewStream } from "../viewStream";
+import moment from "moment";
 
 export const VIEW_MORE_COMMENT = async (ws: WebSocket, data: WSMessage, info: User) => {
     const dataReq = data.payload;
@@ -34,13 +35,14 @@ export const SEND_COMMENT = async (ws: WebSocket, data: WSMessage, info: User) =
             }));
         }
 
+        const today = new Date();
         const formatNewComment = {
             user: info,
             content: dataReq.content,
-            sendAt: new Date()
+            sendAt: moment(today).format('DD-MM-YYYY HH:mm:ss')
         }
 
-        await redisClient.rPush(`comment-stream-${dataReq.stream_id}`, JSON.stringify(formatNewComment));
+        await redisClient.lPush(`comment-stream-${dataReq.stream_id}`, JSON.stringify(formatNewComment));
         const comments = await redisClient.lRange(`comment-stream-${dataReq.stream_id}`, 0, 19);
         const commentList = comments.map(items => JSON.parse(items));
         

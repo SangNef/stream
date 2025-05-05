@@ -3,6 +3,7 @@ import { BadRequestResponse, NotFoundResponse } from '../core/ErrorResponse';
 import Stream from '../../models/stream';
 import User from '../../models/user';
 import Follower from '../../models/follower';
+import { StreamStatus, UserRole } from '~/type/app.entities';
 
 class UserStreamService {
     // Lấy tất cả stream (đã live, đang live), sắp xếp DESC theo lượt xem.
@@ -12,7 +13,7 @@ class UserStreamService {
         const offset = (pageCurrent - 1) * recordOfPage;
 
         let condition = {} as any;
-        if (is_streaming) condition.status = 'live'; // Chỉ lấy stream đang live.
+        if (is_streaming) condition.status = StreamStatus.LIVE; // Chỉ lấy stream đang live.
 
         const result = await Stream.findAndCountAll({
             limit: recordOfPage,
@@ -124,7 +125,7 @@ class UserStreamService {
         if (Number.isNaN(creator_id)) throw new BadRequestResponse('ID nhà sáng tạo nội dung không hợp lệ!');
 
         const creatorExisted = await User.findByPk(creator_id);
-        if (!creatorExisted || creatorExisted.role !== 'creator')
+        if (!creatorExisted || creatorExisted.role !== UserRole.CREATOR)
             throw new NotFoundResponse('Nhà sáng tạo nội dung không tồn tại!');
 
         const result = await Stream.findOne({
@@ -136,7 +137,7 @@ class UserStreamService {
                 where: { id: creator_id },
                 required: true
             },
-            where: { status: 'live' }
+            where: { status: StreamStatus.LIVE }
         });
 
         return result;

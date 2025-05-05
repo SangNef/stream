@@ -2,6 +2,7 @@ import { DonateItemEntity } from "~/type/app.entities";
 import { BadRequestResponse, NotFoundResponse } from "../core/ErrorResponse";
 import { DonateItemModel } from "~/models";
 import { Op } from "sequelize";
+import AdminHistoryService from "./admin.history.service";
 
 interface FilterItem extends DonateItemEntity {
     min_price: number
@@ -45,7 +46,7 @@ class AdminDonateItemService {
         }
     }
 
-    static addNew = async (data: Partial<DonateItemEntity>) => {
+    static addNew = async (sub: number, data: Partial<DonateItemEntity>) => {
         if(
             (!data.name || data.name.trim()==='' || typeof(data.name)!=='string') ||
             (!data.image || data.image.trim()==='' || typeof(data.image)!=='string') ||
@@ -58,10 +59,16 @@ class AdminDonateItemService {
             price: data.price!
         }
         const result = await DonateItemModel.create(formatDonateItem);
+
+        await AdminHistoryService.addNew({
+            admin_id: sub,
+            action: `Thêm mới vật phẩm quà tặng ${result.id}`
+        });
+
         return result;
     }
 
-    static update = async (id: number, data: Partial<DonateItemEntity>) => {
+    static update = async (sub: number, id: number, data: Partial<DonateItemEntity>) => {
         if(
             Number.isNaN(id) ||
             (data.name && (data.name.trim()==='' || typeof(data.name)!=='string')) ||
@@ -84,10 +91,16 @@ class AdminDonateItemService {
         const result = await DonateItemModel.update(formatDonateItem, {
             where: { id }
         });
+
+        await AdminHistoryService.addNew({
+            admin_id: sub,
+            action: `Cập nhật thông tin vật phẩm quà tặng ${id}`
+        });
+
         return result;
     }
 
-    static delOrRestore = async (id: number, is_delete: boolean) => {
+    static delOrRestore = async (sub: number, id: number, is_delete: boolean) => {
         if(Number.isNaN(id)) throw new BadRequestResponse('ID vật phẩm không hợp lệ!');
 
         let result = 0 as any, message = '';
@@ -107,6 +120,11 @@ class AdminDonateItemService {
             result = await DonateItemModel.restore({ where: { id }});
             message = 'Khôi phục vật phẩm quà tặng thành công!';
         }
+
+        await AdminHistoryService.addNew({
+            admin_id: sub,
+            action: `${message.includes('Xóa')? 'Xóa': 'Khôi phục'} vật phẩm quà tặng ${id}`
+        });
 
         return { result, message };
     }

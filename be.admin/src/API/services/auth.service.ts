@@ -21,8 +21,8 @@ class AuthService {
     const payload = jwtVerifyAccessToken(refreshToken, process.env.JWT_SECRET_REFRESHTOKEN!)
     if(!payload) throw new BadRequestResponse('Mã làm mới không chính xác!');
 
-    delete payload.exp;
-    return res.status(200).json({ accessToken: jwtSignAccessToken(payload)});
+    const { exp, iat, nbf, ...newPayload } = payload;
+    return res.status(200).json({ accessToken: jwtSignAccessToken(newPayload)});
   }
 
   static getProfileBySub = async (sub: number, role: string) => {

@@ -7,9 +7,15 @@ import User from '../../models/user';
 import { literal } from 'sequelize';
 import * as dotenv from "dotenv";
 import AdminHistoryService from './admin.history.service';
-import { AdminModelEntity, UserModelEntity, UserRole } from '../../type/app.entities';
+import { AdminModelEntity, AdminRole, UserModelEntity, UserRole } from '../../type/app.entities';
 
 dotenv.config();
+
+enum PeriodType {
+    DAY = "day",
+    WEEK = "week",
+    MONTH = "month"
+}
 
 class AdminService {
     static getListAdmin = async (search: string, page: number, limit: number, is_paranoid: boolean, sub: number) => {
@@ -46,13 +52,13 @@ class AdminService {
         }
     }
 
-    static getListRoleUser = async(search: string, period: string, recordsLimit: number, page: number, isParanoid: boolean) => {
+    static getListRoleUser = async(search: string, recordsLimit: number, page: number, isParanoid: boolean) => {
         const pageCurrent = Number.isNaN(page)? 1: page;
         const recordsPage = Number.isNaN(recordsLimit)? 10: recordsLimit;
         const offset = (pageCurrent - 1) * recordsPage;
 
         let condition = {} as any;
-        condition.role = 'user';
+        condition.role = UserRole.USER;
         if(search && search!=='' && search!==':search'){
             const stringQuery = `%${search}%`;
             if(!condition[Op.or]) condition[Op.or] = [];
@@ -61,18 +67,6 @@ class AdminService {
                 { username: { [Op.like]: stringQuery}},
                 { balance: { [Op.like]: stringQuery}}
             );
-        }
-        const today = new Date();
-        const startDate = new Date();
-        if(period==='month'){
-            startDate.setMonth(startDate.getMonth()-1);
-            condition.createdAt = { [Op.between]: [startDate, today] };
-        } else if (period==='week'){
-            startDate.setDate(startDate.getDate()-7);
-            condition.createdAt = { [Op.between]: [startDate, today] };
-        } else if (period==='day'){
-            startDate.setDate(startDate.getDate()-1);
-            condition.createdAt = { [Op.between]: [startDate, today] };
         }
 
         const result = await User.findAndCountAll({
@@ -96,13 +90,13 @@ class AdminService {
         }
     }
 
-    static getListRoleCreator = async(search: string, period: string, recordsLimit: number, page: number, is_paranoid: boolean) => {
+    static getListRoleCreator = async(search: string, recordsLimit: number, page: number, is_paranoid: boolean) => {
         const pageCurrent = Number.isNaN(page)? 1: page;
         const recordsPage = Number.isNaN(recordsLimit)? 10: recordsLimit;
         const offset = (pageCurrent - 1) * recordsPage;
 
         let condition = {} as any;
-        condition.role = 'creator';
+        condition.role = UserRole.CREATOR
         if(search && search!=='' && search!==':search'){
             const stringQuery = `%${search}%`;
             if(!condition[Op.or]) condition[Op.or] = [];
@@ -112,18 +106,6 @@ class AdminService {
                 { username: { [Op.like]: stringQuery}},
                 { balance: { [Op.like]: stringQuery}}
             );
-        }
-        const today = new Date();
-        const startDate = new Date();
-        if(period==='month'){
-            startDate.setMonth(startDate.getMonth()-1);
-            condition.createdAt = { [Op.between]: [startDate, today] };
-        } else if (period==='week'){
-            startDate.setDate(startDate.getDate()-7);
-            condition.createdAt = { [Op.between]: [startDate, today] };
-        } else if (period==='day'){
-            startDate.setDate(startDate.getDate()-1);
-            condition.createdAt = { [Op.between]: [startDate, today] };
         }
 
         const result = await User.findAndCountAll({
@@ -146,6 +128,33 @@ class AdminService {
             recordsOfPage: recordsPage,
             records: result.rows
         }
+    }
+
+    static statisticalNewUser = async (period: string, role: string) => {
+        if(period!==PeriodType.DAY && period!==PeriodType.WEEK && period!==PeriodType.MONTH)
+            throw new BadRequestResponse("Tham số truyền vào không hợp lệ!");
+
+        let condition = {} as any;
+        const today = new Date();
+        const startDate = new Date();
+        if(period===PeriodType.MONTH){
+            startDate.setMonth(startDate.getMonth()-1);
+            condition.createdAt = { [Op.between]: [startDate, today] };
+        } else if (period===PeriodType.WEEK){
+            startDate.setDate(startDate.getDate()-7);
+            condition.createdAt = { [Op.between]: [startDate, today] };
+        } else if (period===PeriodType.DAY){
+            startDate.setDate(startDate.getDate()-1);
+            condition.createdAt = { [Op.between]: [startDate, today] };
+        }
+        if(role===UserRole.USER) condition.role = UserRole.USER;
+        if(role===UserRole.CREATOR) condition.role = UserRole.CREATOR;
+
+        const users = await User.findAll({
+            where: condition
+        });
+
+        return users.length;
     }
 
     static signin = async (data: AdminModelEntity) => {
@@ -184,7 +193,7 @@ class AdminService {
 
         let isRoot = 0 as any;
         const infoSub = await Admin.findByPk(sub);
-        if(infoSub?.role==='super_admin' && (data.role==='admin' || data.role==='super_admin')){
+        if(infoSub?.role===AdminRole.SUPER_ADMIN && (data.role===AdminRole.ADMIN || data.role===AdminRole.SUPER_ADMIN)){
             isRoot = data.role;
         }
 
@@ -193,7 +202,7 @@ class AdminService {
             name: data.name,
             email: data.email,
             password: hashPass,
-            role: isRoot || 'admin'
+            role: isRoot || AdminRole.ADMIN
         }
         const result = await Admin.create(formatAdmin);
 
@@ -221,7 +230,7 @@ class AdminService {
             fullname: data.fullname,
             username: data.username,
             password: await hash(data.password),
-            role: 'creator' as UserRole,
+            role: UserRole.CREATOR,
             avatar: data.avatar || null,
             balance: 0,
             phone: data.phone || null
@@ -281,7 +290,7 @@ class AdminService {
         ) throw new BadRequestResponse('Dữ liệu truyền vào không hợp lệ!');
 
         const infoAcc = await Admin.findByPk(sub);
-        if(infoAcc!.role==='admin'){
+        if(infoAcc!.role===AdminRole.ADMIN){
             const formatAdmin = {
                 name: name ?? infoAcc!.name,
                 email: email ?? infoAcc!.email,

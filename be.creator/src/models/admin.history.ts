@@ -34,7 +34,7 @@ class AdminAction extends Model<AdminActionModelEntity, Optional<AdminActionMode
             },
             {
                 sequelize,
-                modelName: 'AdminHistory',
+                modelName: 'AdminAction',
                 timestamps: true,
                 paranoid: true
             }

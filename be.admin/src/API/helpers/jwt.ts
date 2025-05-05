@@ -3,7 +3,7 @@ import "dotenv/config";
 
 // Đảm bảo các biến môi trường không undefined
 const JWT_SECRET_ACCESSTOKEN: Secret = process.env.JWT_SECRET_ACCESSTOKEN as string;
-const JWT_EXPIRES_IN_ACCESSTOKEN: string = process.env.JWT_EXPIRES_IN_ACCESSTOKEN || "1h";
+const JWT_EXPIRES_IN_ACCESSTOKEN: string = process.env.JWT_EXPIRES_IN_ACCESSTOKEN || "1d";
 const JWT_SECRET_REFRESHTOKEN: Secret = process.env.JWT_SECRET_REFRESHTOKEN as string;
 const JWT_EXPIRES_IN_REFRESHTOKEN: string = process.env.JWT_EXPIRES_IN_REFRESHTOKEN || "7d";
 

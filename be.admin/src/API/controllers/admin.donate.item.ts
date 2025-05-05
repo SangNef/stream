@@ -1,7 +1,8 @@
 import { Request, Response } from "express";
-import { AdminDonateItemService, AdminHistoryService } from "../services";
+import { AdminDonateItemService } from "../services";
 import { CREATED, OK } from "../core/SuccessResponse";
 import { stringToBoolean } from "../helpers/function";
+import { ReqEntity } from "~/type/app.entities";
 
 class AdminDonateItemController {
     static getList = async (req: Request, res: Response) => {
@@ -22,39 +23,29 @@ class AdminDonateItemController {
         }).send(res);
     }
 
-    static addNew = async (req: Request, res: Response) => {
-        const result = await AdminDonateItemService.addNew(req.body);
-        await AdminHistoryService.addNew({
-            admin_id: req.user?.sub!,
-            action: `Thêm mới vật phẩm quà tặng ${result.id}`
-        });
+    static addNew = async (req: ReqEntity, res: Response) => {
+        const result = await AdminDonateItemService.addNew(req.user.sub, req.body);
         return new CREATED({
             metadata: result,
             message: 'Thêm mới vật phẩm quà tặng thành công!'
         }).send(res);
     }
 
-    static update = async (req: Request, res: Response) => {
+    static update = async (req: ReqEntity, res: Response) => {
+        const sub = req.user.sub;
         const id = parseInt(req.params.id);
-        const result = await AdminDonateItemService.update(id, req.body);
-        await AdminHistoryService.addNew({
-            admin_id: req.user?.sub!,
-            action: `Cập nhật thông tin vật phẩm quà tặng ${id}`
-        });
+        const result = await AdminDonateItemService.update(sub, id, req.body);
         return new OK({
             metadata: result,
             message: 'Cập nhật vật phẩm quà tặng thành công!'
         }).send(res);
     }
 
-    static delOrRestore = async (req: Request, res: Response) => {
+    static delOrRestore = async (req: ReqEntity, res: Response) => {
+        const sub = req.user.sub;
         const id = parseInt(req.params.id);
         const is_delete = stringToBoolean(req.query.is_delete as string);
-        const result = await AdminDonateItemService.delOrRestore(id, is_delete);
-        await AdminHistoryService.addNew({
-            admin_id: req.user?.sub!,
-            action: `${result.message.includes('Xóa')? 'Xóa': 'Khôi phục'} vật phẩm quà tặng ${id}`
-        });
+        const result = await AdminDonateItemService.delOrRestore(sub, id, is_delete);
         return new OK({
             metadata: result.result,
             message: result.message

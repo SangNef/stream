@@ -1,5 +1,5 @@
 import { CREATED, OK } from "../core/SuccessResponse";
-import { AdminHistoryService, AdminService } from "../services";
+import { AdminService } from "../services";
 import { stringToBoolean } from "../helpers/function";
 import { ReqEntity } from "../../type/app.entities";
 import { Request, Response } from "express";
@@ -21,12 +21,11 @@ class AdminController {
 
     static getListUser = async (req: Request, res: Response) => {
         const search = req.query.search as string;
-        const period = req.query.period as string;
         const limit = req.query.limit as string;
         const page = req.query.page as string;
         const isParanoid = !stringToBoolean(req.query.is_paranoid as string)
 
-        const result = await AdminService.getListRoleUser(search, period, parseInt(limit), parseInt(page), isParanoid);
+        const result = await AdminService.getListRoleUser(search, parseInt(limit), parseInt(page), isParanoid);
         return new OK({
             metadata: result,
             message: "Lấy danh sách người dùng thành công!"
@@ -35,15 +34,24 @@ class AdminController {
 
     static getListCreator = async (req: Request, res: Response) => {
         const search = req.query.search as string;
-        const period = req.query.period as string;
         const recordsLimit = req.query.limit as string;
         const page = req.query.page as string;
         const is_paranoid = !stringToBoolean(req.query.is_paranoid as string);
 
-        const result = await AdminService.getListRoleCreator(search, period, parseInt(recordsLimit), parseInt(page), is_paranoid);
+        const result = await AdminService.getListRoleCreator(search, parseInt(recordsLimit), parseInt(page), is_paranoid);
         return new OK({
             metadata: result,
             message: "Lấy danh sách nhà sáng tạo thành công!"
+        }).send(res);
+    }
+
+    static statisticalNewUser = async (req: Request, res: Response) => {
+        const period = req.params.period;
+        const role = req.query.role as string;
+        const result = await AdminService.statisticalNewUser(period, role);
+        return new OK({
+            metadata: result,
+            message: "Lấy số lượng người dùng đăng ký mới theo khoảng thời gian thành công!"
         }).send(res);
     }
 
@@ -66,10 +74,6 @@ class AdminController {
         const data = req.body;
 
         const result = await AdminService.signup(req.user.sub, data);
-        await AdminHistoryService.addNew({
-            admin_id: req.user?.sub,
-            action: `Thêm mới tài khoản quản trị viên. Dữ liệu vào: ${JSON.stringify(data)}`
-        });
         return new CREATED({
             metadata: result,
             message: "Tạo tài khoản admin mới thành công!"
@@ -81,10 +85,6 @@ class AdminController {
         const data = req.body;
 
         const result = await AdminService.createUserAccount(sub, data);
-        await AdminHistoryService.addNew({
-            admin_id: req.user?.sub,
-            action: `Thêm mới tài khoản người dùng. Dữ liệu vào: ${JSON.stringify(data)}`
-        });
         return new CREATED({
             metadata: result,
             message: "Thêm mới tài khoản nhà sáng tạo thành công!"

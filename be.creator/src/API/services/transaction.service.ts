@@ -26,10 +26,10 @@ class UserTransactionService {
 
         let totalIn = 0, totalOut = 0;
         result.rows.map(items => {
-            if(items.type==='deposit'){
+            if(items.type === TransactionType.deposit){
                 totalOut += parseInt(items.amount as any);
             }
-            if(items.type==='withdraw'){
+            if(items.type === TransactionType.withdraw){
                 totalIn += parseInt(items.amount as any);
             }
         });
@@ -46,13 +46,14 @@ class UserTransactionService {
     }
 
     // Chỉ dành cho user/creator.
-    static addNew = async (sub: number, type: 'deposit' | 'withdraw', value: number, content: string) => {
+    // static addNew = async (sub: number, type: 'deposit' | 'withdraw', value: number, content: string) => {
+    static addNew = async (sub: number, type: TransactionType, value: number, content: string) => {
         if(
             Number.isNaN(value) ||
-            (type!=='deposit' && type!=='withdraw')
+            (type!==TransactionType.deposit && type!==TransactionType.withdraw)
         ) throw new BadRequestResponse('Dữ liệu truyền vào không hợp lệ!');
 
-        if(type==='withdraw'){
+        if(type===TransactionType.withdraw){
             const infoUser = await User.findByPk(sub);
             const balanceAcc = parseInt(infoUser!.balance as any);
             if(balanceAcc < value)
@@ -61,9 +62,9 @@ class UserTransactionService {
 
         const formatTransaction = {
             user_id: sub,
-            type: type as TransactionType,
+            type,
             amount: value,
-            status: 'pending' as TransactionStatus
+            status: TransactionStatus.pending
         }
 
         const result = await TransactionModel.create(formatTransaction);

@@ -5,6 +5,7 @@ import { AuthController, UserAccountController, UserBankController, UserDonateIt
 import { upload } from "../helpers/multer";
 import UserCommentController from "../controllers/comment.controller";
 import { AuthService } from "../services";
+import RedisCommentController from "../controllers/redis.comment.controller";
 
 const router = express.Router();
 
@@ -33,6 +34,7 @@ router.get('/stream/creator/followed', asyncHandler(UserStreamController.getList
 router.get('/donate/items', asyncHandler(UserDonateItemController.getList));
 
 // Comment.
+router.get('/comments/:stream_id', asyncHandler(RedisCommentController.getComments));
 // router.get('/comment/get-by/:stream_id', asyncHandler(UserCommentController.getComments));
 
 //Follower

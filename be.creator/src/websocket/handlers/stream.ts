@@ -24,6 +24,7 @@ export const CREATE_STREAM = async (ws: WebSocket, data: WSMessage, info: User) 
         stream_id: dataReq.stream_id, 
         ws
     });
+    await Stream.update({ status: StreamStatus.LIVE }, { where: { id: dataReq.stream_id } })
     console.log(`[WebSocket]: Creator ${info.id} Created Stream With ID: ${dataReq.stream_id}`);
 
     // Tất cả người dùng đang xem live.

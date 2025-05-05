@@ -101,7 +101,7 @@ class UserAccountService {
             fullname: data.fullname!,
             username: data.username,
             password: await hash(data.password),
-            role: data.role? data.role: 'creator' as UserRole,
+            role: data.role? data.role: UserRole.CREATOR,
             avatar: data.avatar ?? null,
             balance: data.balance? data.balance: 0,
             phone: data.phone ?? null

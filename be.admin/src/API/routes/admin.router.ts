@@ -19,6 +19,7 @@ router.put('/change-password', asyncHandler(AuthController.changePassword));
 //User
 router.get('/users/user', asyncHandler(AdminController.getListUser));
 router.get('/users/creator', asyncHandler(AdminController.getListCreator));
+router.get('/users/new/:period', asyncHandler(AdminController.statisticalNewUser));
 router.post('/new-user', asyncHandler(AdminController.createNewUserAccount));
 router.put('/users/update/:user_id', asyncHandler(AdminController.updateUserAccount));
 // Xóa mềm hoặc khôi hục bản ghi tài khoản
