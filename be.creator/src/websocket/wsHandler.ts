@@ -56,7 +56,7 @@ export const handleWSConnection = async (ws: WebSocket, req: any) => {
                 ws.send(JSON.stringify({ type: "ERROR", message: "Lỗi nội bộ máy chủ!" }));
             }
         });
-    
+
         ws.on("close", async () => {
             const streamid = findKeyInMap(mapLivestreams, newConnect.id);
 
