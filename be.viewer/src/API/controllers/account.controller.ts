@@ -24,21 +24,22 @@ class UserAccountController {
     static signin = async (req: Request, res: Response) => {
         const data = req.body;
         const result = await UserAccountService.signin(data);
-        res.cookie('refreshToken', result.refreshToken, {
-            httpOnly: true,
-            secure: true,
-            path: "/",
-            sameSite: "strict",
-        });
-
-        const { refreshToken, ...newResult } = result;
-        return new OK({ metadata: newResult, message: "Đăng nhập thành công!"}).send(res);
+        return new OK({ metadata: result, message: "Đăng nhập thành công!"}).send(res);
     }
 
     static signup = async (req: Request, res: Response) => {
         const data = req.body;
         const result = await UserAccountService.signup(data);
         return new CREATED({ metadata: result, message: "Đăng ký thành công!"}).send(res);
+    }
+
+    static logout = async (req: ReqEntity, res: Response) => {
+        const data = { id: req.user.sub, device_id: req.body.device_id };
+        const result = await UserAccountService.logout(data);
+        return new OK({
+            metadata: result,
+            message: "Đăng xuất thành công!"
+        }).send(res);
     }
 
     static updateInfoAcc = async (req: ReqEntity, res: Response) => {

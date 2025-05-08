@@ -11,34 +11,12 @@ import { StatusCodes, ReasonPhrases } from "../common/httpStatusCode";
 import helmet from "helmet";
 import morgan from "morgan";
 import config from "~/config";
+import configCors from "~/config/cors";
 
 const appMain = async () => {
   const app = express();
 
-  // Middleware CORS
-  const corsMiddleware = (req: Request, res: Response, next: NextFunction) => {
-    res.header("Access-Control-Allow-Origin", "http://localhost:5173");
-    res.header("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS");
-    res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
-    res.header("Access-Control-Allow-Credentials", "true");
-
-    // Chặn trình duyệt cache file .m3u8
-    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
-    res.setHeader("Expires", "0");
-
-    if (req.method === "OPTIONS") {
-        return res.sendStatus(200);
-    }
-    next();
-  };
-  app.use(corsMiddleware as any);
-  app.use(cors({
-    origin: "http://localhost:5173",
-    methods: ["GET", "HEAD", "PUT", "PATCH", "POST", "DELETE", "OPTIONS"],
-    credentials: true,
-    allowedHeaders: ["Content-Type", "Authorization"]
-  }));
-
+  app.use(cors(configCors));
   app.use(bodyParser.json());
   // cookie
   app.use(cookieParser());

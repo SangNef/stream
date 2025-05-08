@@ -6,8 +6,13 @@ import { Follower, User } from "../../models/index";
 import Stream from '../../models/stream';
 import * as dotenv from "dotenv";
 import { UserModelEntity, UserRole } from '../../type/app.entities';
+import redisClient from '../helpers/redis';
 
 dotenv.config();
+
+interface UserSignin extends UserModelEntity {
+    device_id: string
+}
 
 class UserAccountService {
     //Lấy ra danh sách tất cả tài khoản người dùng
@@ -70,8 +75,9 @@ class UserAccountService {
         }
     }
 
-    static signin = async (data: Partial<UserModelEntity>) => {
-        if(!data.username || !data.password) throw new BadRequestResponse('Dữ liệu truyền vào không hợp lệ!');
+    static signin = async (data: Partial<UserSignin>) => {
+        if(!data.username || !data.password || (!data.device_id || data.device_id.trim()===""))
+            throw new BadRequestResponse('Dữ liệu truyền vào không hợp lệ!');
 
         const userExisted = await User.findOne({ where: {
             username: data.username
@@ -85,6 +91,10 @@ class UserAccountService {
 
         const accessToken = jwtSignAccessToken(payload as any);
         const refreshToken = jwtSignRefreshToken(payload as any);
+
+        const saveToRedis = { refreshToken, device_id: data.device_id }
+        await redisClient.set(`rfToken-${userExisted.id}`, JSON.stringify(saveToRedis));
+        console.log(">>> save to redis: ", saveToRedis);
 
         return{ accessToken, refreshToken };
     }
@@ -107,6 +117,14 @@ class UserAccountService {
             balance: data.balance? data.balance: 0
         }
         const result = await User.create(formatUser)
+        return result;
+    }
+
+    static logout = async (data: Partial<UserSignin>) => {
+        const authRedis = await redisClient.get(`rfToken-${data.id}`);
+        if (!authRedis) throw new BadRequestResponse("Phiên đăng nhập không tồn tại! Không thể đăng xuất!");
+
+        const result = await redisClient.del(`rfToken-${data.id}`);
         return result;
     }
 

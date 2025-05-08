@@ -19,6 +19,7 @@ router.use(asyncHandler(AuthMiddleWare.isRoleUser));
 
 // Account.
 router.get('/profile', asyncHandler(AuthController.getProfile));
+router.post("/logout", asyncHandler(UserAccountController.logout));
 router.put('/profile/update', asyncHandler(UserAccountController.updateInfoAcc));
 router.put('/change-password', asyncHandler(AuthController.changePassword));
 router.delete('/delete', asyncHandler(UserAccountController.deleteAccount));

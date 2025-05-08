@@ -4,6 +4,7 @@ import Stream from '../../models/stream';
 import User from '../../models/user';
 import Follower from '../../models/follower';
 import { StreamStatus, UserRole } from '~/type/app.entities';
+import redisClient from '../helpers/redis';
 
 class UserStreamService {
     // Lấy tất cả stream (đã live, đang live), sắp xếp DESC theo lượt xem.
@@ -27,6 +28,13 @@ class UserStreamService {
             order: [['view', 'DESC'], ['id', 'DESC']],
             where: condition
         });
+
+        await Promise.all(result.rows.map(async (item) => {
+            const views = await redisClient.get(`${item.id}`);
+            if (views) {
+                item.view = parseInt(views);
+            }
+        }));
 
         return {
             recordOfPage,

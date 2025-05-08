@@ -5,20 +5,32 @@ import * as dotenv from "dotenv";
 import User from "../../models/user";
 import { literal } from "sequelize";
 import { Request, Response } from "express";
+import redisClient from "../helpers/redis";
 
 dotenv.config();
 
 class AuthService {
   static providerRefreshToken = async (req: Request, res: Response) => {
-    const tokenCookie = req.cookies;
-    const refreshToken = tokenCookie.refreshToken;
-    if(!refreshToken) throw new BadRequestResponse('Dữ liệu truyền vào không hợp lệ!');
+    const refreshToken = req.body.refreshToken;
+    const deviceId = req.body.device_id;
+    console.log(refreshToken, deviceId);
+    if(!refreshToken || !deviceId) throw new BadRequestResponse('Dữ liệu truyền vào không hợp lệ!');
 
     const payload = jwtVerifyAccessToken(refreshToken, process.env.JWT_SECRET_REFRESHTOKEN!)
     if(!payload) throw new BadRequestResponse('Mã tạo mới không chính xác!');
 
-    delete payload.exp;
-    return res.status(200).json({ accessToken: jwtSignAccessToken(payload)});
+    const deviceIdExisted = await redisClient.get(`rfToken-${payload.sub}`);
+    if (!deviceIdExisted) throw new BadRequestResponse("Không tìm thấy dữ liệu phù hợp cho mã tạo mới!");
+
+    const dataRedis = JSON.parse(deviceIdExisted);
+    console.log(">>> rf in redis: ", dataRedis);
+    if (dataRedis.device_id !== deviceId)
+      throw new BadRequestResponse("Mã thiết bị không chính xác!");
+    if (dataRedis.refreshToken !== refreshToken)
+      throw new BadRequestResponse("Mã tạo mới không chính xác!");
+
+    const { exp, iat, nbf, ...newPayload } = payload;
+    return res.status(200).json({ accessToken: jwtSignAccessToken(newPayload)});
   }
 
   static getProfileBySub = async (sub: number) => {
